@@ -42,6 +42,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
   const [editingName, setEditingName] = useState('');
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const handleFolderEdit = (folderId: string, currentName: string) => {
     setEditingFolder(folderId);
@@ -58,20 +59,37 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
 
   const handleDragOver = (e: React.DragEvent, folderId: string | null) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverFolder(folderId);
+    setIsDragActive(true);
   };
 
-  const handleDragLeave = () => {
-    setDragOverFolder(null);
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only clear if we're leaving the entire sidebar area
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+      setDragOverFolder(null);
+      setIsDragActive(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, folderId: string | null) => {
     e.preventDefault();
+    e.stopPropagation();
     const noteId = e.dataTransfer.getData('text/plain');
-    if (noteId) {
+    if (noteId && dragOverFolder !== null) {
       onNoteDrop(noteId, folderId);
     }
     setDragOverFolder(null);
+    setIsDragActive(false);
+  };
+
+  const handleDragEnd = () => {
+    setDragOverFolder(null);
+    setIsDragActive(false);
   };
 
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -99,15 +117,16 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
   const renderFolder = (folder: Folder, level: number = 0) => (
     <div key={folder.id} className="select-none">
       <motion.div
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-100 group ${
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-100 group transition-all ${
           selectedFolder === folder.id ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
-        } ${dragOverFolder === folder.id ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : ''}`}
+        } ${dragOverFolder === folder.id && isDragActive ? 'bg-blue-200 border-2 border-blue-400 border-dashed shadow-lg' : ''}`}
         style={{ paddingLeft: `${12 + level * 16}px` }}
         whileHover={{ x: 2 }}
         onClick={() => onFolderSelect(folder.id)}
         onDragOver={(e) => handleDragOver(e, folder.id)}
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, folder.id)}
+        onDragEnd={handleDragEnd}
       >
         <button
           onClick={(e) => {
@@ -207,6 +226,8 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     <div 
       className="bg-white border-r border-gray-200 h-full flex"
       style={{ width }}
+      onDragLeave={handleDragLeave}
+      onDragEnd={handleDragEnd}
     >
       <div className="flex-1 flex flex-col">
         <div className="p-4 border-b border-gray-200">
@@ -230,12 +251,13 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
           
           <button
             onClick={() => onFolderSelect(null)}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-gray-100 ${
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-gray-100 transition-all ${
               selectedFolder === null ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
-            } ${dragOverFolder === null ? 'border-2 border-blue-300 border-dashed bg-blue-50' : ''}`}
+            } ${dragOverFolder === null && isDragActive ? 'bg-blue-200 border-2 border-blue-400 border-dashed shadow-lg' : ''}`}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}
+            onDragEnd={handleDragEnd}
           >
             <FolderOpen className="w-4 h-4" />
             <span className="text-sm font-medium">All Notes</span>

@@ -25,6 +25,7 @@ const StickyNotesBoard: React.FC = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [draggedNote, setDraggedNote] = useState<string | null>(null);
 
   const createNote = () => {
     const newNote: Note = {
@@ -67,6 +68,15 @@ const StickyNotesBoard: React.FC = () => {
     setNotes(notes.map(note => 
       note.id === noteId ? { ...note, folderId: folderId || undefined } : note
     ));
+    setDraggedNote(null);
+  };
+
+  const handleNoteDragStart = (noteId: string) => {
+    setDraggedNote(noteId);
+  };
+
+  const handleNoteDragEnd = () => {
+    setDraggedNote(null);
   };
 
   const createFolder = (parentId?: string) => {
@@ -259,7 +269,10 @@ const StickyNotesBoard: React.FC = () => {
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', note.id);
+                handleNoteDragStart(note.id);
               }}
+              onDragEnd={handleNoteDragEnd}
+              className={draggedNote === note.id ? 'opacity-60' : ''}
             >
               <StickyNote
                 id={note.id}
