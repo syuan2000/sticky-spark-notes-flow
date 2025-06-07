@@ -223,7 +223,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
                 onClick={onCollapse}
                 className="p-1 rounded hover:bg-gray-100"
               >
-                <ChevronDoubleLeft className="w-4 h-4" />
+                <ChevronsLeft className="w-4 h-4" />
               </button>
             </div>
           </div>
