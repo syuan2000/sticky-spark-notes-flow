@@ -36,10 +36,12 @@ const StickyNote: React.FC<StickyNoteProps> = ({
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Only finish editing on Ctrl+Enter or Cmd+Enter, not just Enter
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleBlur();
     }
+    // Let normal Enter create new lines
   };
 
   return (
@@ -86,10 +88,10 @@ const StickyNote: React.FC<StickyNoteProps> = ({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onBlur={handleBlur}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           autoFocus
           className="w-full h-32 bg-transparent resize-none outline-none text-gray-800 text-sm leading-relaxed font-medium"
-          placeholder="Type your note..."
+          placeholder="Type your note... (Ctrl+Enter to finish)"
         />
       ) : (
         <div
