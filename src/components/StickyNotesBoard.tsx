@@ -28,12 +28,13 @@ const StickyNotesBoard: React.FC = () => {
   const [draggedNote, setDraggedNote] = useState<string | null>(null);
 
   const createNote = () => {
+    const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
     const newNote: Note = {
       id: Date.now().toString(),
       content: '',
       color: selectedColor,
       position: {
-        x: Math.random() * (window.innerWidth - 400),
+        x: Math.max(currentSidebarWidth + 20, Math.random() * (window.innerWidth - 400 - currentSidebarWidth) + currentSidebarWidth),
         y: Math.random() * (window.innerHeight - 300) + 100,
       },
       size: { width: 192, height: 192 },
@@ -53,8 +54,14 @@ const StickyNotesBoard: React.FC = () => {
   };
 
   const moveNote = (id: string, position: { x: number; y: number }) => {
+    const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
+    const constrainedPosition = {
+      x: Math.max(currentSidebarWidth, position.x),
+      y: Math.max(0, position.y)
+    };
+    
     setNotes(notes.map(note => 
-      note.id === id ? { ...note, position } : note
+      note.id === id ? { ...note, position: constrainedPosition } : note
     ));
   };
 

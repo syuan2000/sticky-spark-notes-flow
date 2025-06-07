@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Plus, MoreHorizontal, Trash2, ChevronsLeft } from 'lucide-react';
@@ -67,7 +68,6 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Only clear if we're leaving the entire sidebar area
     const rect = e.currentTarget.getBoundingClientRect();
     const { clientX, clientY } = e;
     if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
@@ -160,7 +160,9 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
             autoFocus
           />
         ) : (
-          <span className="flex-1 text-sm font-medium">{folder.name}</span>
+          <span className="flex-1 text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }}>
+            {folder.name}
+          </span>
         )}
         
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
@@ -224,7 +226,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
 
   return (
     <div 
-      className="bg-white border-r border-gray-200 h-full flex"
+      className="bg-white border-r border-gray-200 h-full flex relative z-40"
       style={{ width }}
       onDragLeave={handleDragLeave}
       onDragEnd={handleDragEnd}
@@ -232,7 +234,9 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
       <div className="flex-1 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-800">Folders</h2>
+            <h2 className="text-lg font-semibold text-gray-800" style={{ userSelect: 'none', pointerEvents: 'none' }}>
+              Folders
+            </h2>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => onFolderCreate()}
@@ -258,9 +262,12 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}
             onDragEnd={handleDragEnd}
+            style={{ userSelect: 'none' }}
           >
             <FolderOpen className="w-4 h-4" />
-            <span className="text-sm font-medium">All Notes</span>
+            <span className="text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }}>
+              All Notes
+            </span>
           </button>
         </div>
         
