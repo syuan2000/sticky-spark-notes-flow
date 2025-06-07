@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 import { Plus, X } from 'lucide-react';
 
 const defaultColors = [
-  { name: 'yellow', class: 'bg-yellow-200' },
-  { name: 'pink', class: 'bg-pink-200' },
-  { name: 'blue', class: 'bg-blue-200' },
-  { name: 'green', class: 'bg-green-200' },
-  { name: 'purple', class: 'bg-purple-200' },
-  { name: 'orange', class: 'bg-orange-200' },
+  { name: 'yellow', class: 'bg-yellow-200', hex: '#FEF08A' },
+  { name: 'pink', class: 'bg-pink-200', hex: '#FBCFE8' },
+  { name: 'blue', class: 'bg-blue-200', hex: '#BFDBFE' },
+  { name: 'green', class: 'bg-green-200', hex: '#BBF7D0' },
+  { name: 'purple', class: 'bg-purple-200', hex: '#E9D5FF' },
+  { name: 'orange', class: 'bg-orange-200', hex: '#FED7AA' },
 ];
 
 interface ColorPickerProps {
