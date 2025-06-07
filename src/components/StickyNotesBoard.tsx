@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Menu, X } from 'lucide-react';
@@ -11,6 +10,7 @@ interface Note {
   content: string;
   color: string;
   position: { x: number; y: number };
+  size: { width: number; height: number };
   folderId?: string;
 }
 
@@ -23,7 +23,8 @@ const StickyNotesBoard: React.FC = () => {
     { id: 'work', name: 'Work Projects', isExpanded: false, children: [] },
   ]);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const createNote = () => {
     const newNote: Note = {
@@ -34,6 +35,7 @@ const StickyNotesBoard: React.FC = () => {
         x: Math.random() * (window.innerWidth - 400),
         y: Math.random() * (window.innerHeight - 300) + 100,
       },
+      size: { width: 192, height: 192 },
       folderId: selectedFolder || undefined,
     };
     setNotes([...notes, newNote]);
@@ -55,6 +57,18 @@ const StickyNotesBoard: React.FC = () => {
     ));
   };
 
+  const resizeNote = (id: string, size: { width: number; height: number }) => {
+    setNotes(notes.map(note => 
+      note.id === id ? { ...note, size } : note
+    ));
+  };
+
+  const handleNoteDrop = (noteId: string, folderId: string | null) => {
+    setNotes(notes.map(note => 
+      note.id === noteId ? { ...note, folderId: folderId || undefined } : note
+    ));
+  };
+
   const createFolder = (parentId?: string) => {
     const newFolder: Folder = {
       id: Date.now().toString(),
@@ -64,7 +78,6 @@ const StickyNotesBoard: React.FC = () => {
     };
 
     if (parentId) {
-      // Add as child to parent folder
       const updateFoldersRecursively = (folderList: Folder[]): Folder[] => {
         return folderList.map(folder => {
           if (folder.id === parentId) {
@@ -83,7 +96,6 @@ const StickyNotesBoard: React.FC = () => {
       };
       setFolders(updateFoldersRecursively(folders));
     } else {
-      // Add as root folder
       setFolders([...folders, newFolder]);
     }
   };
@@ -99,7 +111,6 @@ const StickyNotesBoard: React.FC = () => {
     };
     setFolders(deleteFolderRecursively(folders));
     
-    // Move notes from deleted folder to root
     setNotes(notes.map(note => 
       note.folderId === folderId ? { ...note, folderId: undefined } : note
     ));
@@ -147,47 +158,50 @@ const StickyNotesBoard: React.FC = () => {
     ? notes.filter(note => note.folderId === selectedFolder)
     : notes.filter(note => !note.folderId);
 
+  const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden flex">
       {/* Sidebar */}
       <motion.div
-        initial={false}
-        animate={{ x: sidebarOpen ? 0 : -256 }}
+        animate={{ width: currentSidebarWidth }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="fixed left-0 top-0 h-full z-40"
       >
         <FolderSidebar
           folders={folders}
           selectedFolder={selectedFolder}
+          width={sidebarWidth}
+          isCollapsed={sidebarCollapsed}
           onFolderSelect={setSelectedFolder}
           onFolderCreate={createFolder}
           onFolderDelete={deleteFolder}
           onFolderRename={renameFolder}
           onFolderToggle={toggleFolder}
+          onWidthChange={setSidebarWidth}
+          onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onNoteDrop={handleNoteDrop}
         />
       </motion.div>
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
+      <div 
+        className="flex-1 transition-all duration-300"
+        style={{ marginLeft: currentSidebarWidth }}
+      >
         {/* Header */}
-        <div className="fixed top-0 right-0 left-0 z-50 p-6" style={{ left: sidebarOpen ? '256px' : '0' }}>
+        <div 
+          className="fixed top-0 right-0 z-50 p-6" 
+          style={{ left: currentSidebarWidth }}
+        >
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg hover:bg-white/50 transition-colors"
-              >
-                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-              
-              <motion.h1 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-3xl font-bold text-gray-800"
-              >
-                ✨ Sticky Spark
-              </motion.h1>
-            </div>
+            <motion.h1 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl font-bold text-gray-800"
+            >
+              ✨ Sticky Spark
+            </motion.h1>
             
             <div className="flex items-center gap-4">
               <ColorPicker 
@@ -240,16 +254,25 @@ const StickyNotesBoard: React.FC = () => {
           )}
 
           {filteredNotes.map((note) => (
-            <StickyNote
+            <div
               key={note.id}
-              id={note.id}
-              content={note.content}
-              color={note.color}
-              position={note.position}
-              onUpdate={updateNote}
-              onDelete={deleteNote}
-              onMove={moveNote}
-            />
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', note.id);
+              }}
+            >
+              <StickyNote
+                id={note.id}
+                content={note.content}
+                color={note.color}
+                position={note.position}
+                size={note.size}
+                onUpdate={updateNote}
+                onDelete={deleteNote}
+                onMove={moveNote}
+                onResize={resizeNote}
+              />
+            </div>
           ))}
         </div>
 
