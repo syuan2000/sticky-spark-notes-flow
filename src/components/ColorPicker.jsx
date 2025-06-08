@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Plus, X } from 'lucide-react';
+import '../styles/ColorPicker.css';
 
 const defaultColors = [
   { name: 'yellow', class: 'bg-yellow-200', hex: '#FEF08A' },
@@ -12,17 +12,12 @@ const defaultColors = [
   { name: 'orange', class: 'bg-orange-200', hex: '#FED7AA' },
 ];
 
-interface ColorPickerProps {
-  selectedColor: string;
-  onColorSelect: (color: string) => void;
-}
-
-const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorSelect }) => {
-  const [customColors, setCustomColors] = useState<Array<{ name: string; class: string; hex: string }>>([]);
-  const [deletedDefaultColors, setDeletedDefaultColors] = useState<string[]>([]);
+const ColorPicker = ({ selectedColor, onColorSelect }) => {
+  const [customColors, setCustomColors] = useState([]);
+  const [deletedDefaultColors, setDeletedDefaultColors] = useState([]);
   const [isPickingColor, setIsPickingColor] = useState(false);
 
-  const handleCustomColorAdd = (hex: string) => {
+  const handleCustomColorAdd = (hex) => {
     if (customColors.length >= 5) return;
     
     const customClass = `bg-[${hex}]`;
@@ -37,7 +32,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorSelect 
     setIsPickingColor(false);
   };
 
-  const handleColorDelete = (colorToDelete: string, isDefault: boolean = false) => {
+  const handleColorDelete = (colorToDelete, isDefault = false) => {
     if (isDefault) {
       setDeletedDefaultColors([...deletedDefaultColors, colorToDelete]);
     } else {
@@ -61,22 +56,16 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorSelect 
   const emptySlots = Math.max(0, totalSlots - allColors.length - (customColors.length < 5 ? 1 : 0));
 
   return (
-    <div className="flex gap-2 p-2 bg-white rounded-lg shadow-md border">
+    <div className="color-picker">
       {allColors.map((color) => {
         const isDefault = defaultColors.some(dc => dc.class === color.class);
         const isCustom = customColors.some(c => c.class === color.class);
         
         return (
-          <div key={color.name} className="relative group">
-            <motion.button
+          <div key={color.name} className="color-button-container">
+            <button
               onClick={() => onColorSelect(color.class)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className={`w-8 h-8 rounded-full border-2 transition-all ${color.class} ${
-                selectedColor === color.class
-                  ? 'border-gray-600 shadow-md'
-                  : 'border-gray-300 hover:border-gray-500'
-              }`}
+              className={`color-button ${selectedColor === color.class ? 'selected' : ''} ${color.class}`}
               style={color.hex ? { backgroundColor: color.hex } : {}}
             />
             <button
@@ -84,7 +73,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorSelect 
                 e.stopPropagation();
                 handleColorDelete(color.class, isDefault);
               }}
-              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              className="delete-button"
             >
               <X className="w-2 h-2" />
             </button>
@@ -96,36 +85,34 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorSelect 
       {Array.from({ length: emptySlots }).map((_, index) => (
         <div
           key={`placeholder-${index}`}
-          className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 opacity-50"
+          className="placeholder-slot"
         />
       ))}
       
       {customColors.length < 5 && (
-        <div className="relative">
+        <div className="color-button-container">
           {isPickingColor ? (
-            <div className="flex items-center gap-2">
+            <div className="color-picker-input">
               <input
                 type="color"
                 onChange={(e) => handleCustomColorAdd(e.target.value)}
-                className="w-8 h-8 rounded-full border-2 border-gray-300 cursor-pointer"
+                className="color-input"
                 autoFocus
               />
               <button
                 onClick={() => setIsPickingColor(false)}
-                className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
+                className="cancel-button"
               >
                 <X className="w-3 h-3" />
               </button>
             </div>
           ) : (
-            <motion.button
+            <button
               onClick={() => setIsPickingColor(true)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-8 h-8 rounded-full border-2 border-dashed border-gray-400 hover:border-gray-600 transition-all flex items-center justify-center bg-gray-50 hover:bg-gray-100"
+              className="add-color-button"
             >
               <Plus className="w-4 h-4 text-gray-600" />
-            </motion.button>
+            </button>
           )}
         </div>
       )}

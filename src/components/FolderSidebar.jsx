@@ -1,31 +1,9 @@
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Plus, MoreHorizontal, Trash2, ChevronsLeft } from 'lucide-react';
+import '../styles/FolderSidebar.css';
 
-export interface Folder {
-  id: string;
-  name: string;
-  isExpanded?: boolean;
-  children?: Folder[];
-}
-
-interface FolderSidebarProps {
-  folders: Folder[];
-  selectedFolder: string | null;
-  width: number;
-  isCollapsed: boolean;
-  onFolderSelect: (folderId: string | null) => void;
-  onFolderCreate: (parentId?: string) => void;
-  onFolderDelete: (folderId: string) => void;
-  onFolderRename: (folderId: string, newName: string) => void;
-  onFolderToggle: (folderId: string) => void;
-  onWidthChange: (width: number) => void;
-  onCollapse: () => void;
-  onNoteDrop: (noteId: string, folderId: string | null) => void;
-}
-
-const FolderSidebar: React.FC<FolderSidebarProps> = ({
+const FolderSidebar = ({
   folders,
   selectedFolder,
   width,
@@ -39,18 +17,18 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
   onCollapse,
   onNoteDrop,
 }) => {
-  const [editingFolder, setEditingFolder] = useState<string | null>(null);
+  const [editingFolder, setEditingFolder] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [dragOverFolder, setDragOverFolder] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
 
-  const handleFolderEdit = (folderId: string, currentName: string) => {
+  const handleFolderEdit = (folderId, currentName) => {
     setEditingFolder(folderId);
     setEditingName(currentName);
   };
 
-  const handleFolderSave = (folderId: string) => {
+  const handleFolderSave = (folderId) => {
     if (editingName.trim()) {
       onFolderRename(folderId, editingName.trim());
     }
@@ -58,14 +36,14 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     setEditingName('');
   };
 
-  const handleDragOver = (e: React.DragEvent, folderId: string | null) => {
+  const handleDragOver = (e, folderId) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverFolder(folderId);
     setIsDragActive(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -76,7 +54,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     }
   };
 
-  const handleDrop = (e: React.DragEvent, folderId: string | null) => {
+  const handleDrop = (e, folderId) => {
     e.preventDefault();
     e.stopPropagation();
     const noteId = e.dataTransfer.getData('text/plain');
@@ -92,14 +70,14 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     setIsDragActive(false);
   };
 
-  const handleResizeStart = (e: React.MouseEvent) => {
+  const handleResizeStart = (e) => {
     e.preventDefault();
     setIsResizing(true);
     
     const startX = e.clientX;
     const startWidth = width;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e) => {
       const newWidth = Math.max(200, Math.min(500, startWidth + (e.clientX - startX)));
       onWidthChange(newWidth);
     };
@@ -114,14 +92,11 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const renderFolder = (folder: Folder, level: number = 0) => (
-    <div key={folder.id} className="select-none">
-      <motion.div
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-100 group transition-all ${
-          selectedFolder === folder.id ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
-        } ${dragOverFolder === folder.id && isDragActive ? 'bg-blue-200 border-2 border-blue-400 border-dashed shadow-lg' : ''}`}
+  const renderFolder = (folder, level = 0) => (
+    <div key={folder.id} className="folder-item">
+      <div
+        className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && isDragActive ? 'drag-over' : ''}`}
         style={{ paddingLeft: `${12 + level * 16}px` }}
-        whileHover={{ x: 2 }}
         onClick={() => onFolderSelect(folder.id)}
         onDragOver={(e) => handleDragOver(e, folder.id)}
         onDragLeave={handleDragLeave}
@@ -133,17 +108,17 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
             e.stopPropagation();
             onFolderToggle(folder.id);
           }}
-          className="w-4 h-4 flex items-center justify-center"
+          className="folder-toggle"
         >
           {folder.children && folder.children.length > 0 ? (
-            folder.isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />
+            folder.isExpanded ? <ChevronDown className="folder-toggle-icon" /> : <ChevronRight className="folder-toggle-icon" />
           ) : null}
         </button>
         
         {folder.isExpanded ? (
-          <FolderOpen className="w-4 h-4 text-blue-500" />
+          <FolderOpen className="folder-icon expanded" />
         ) : (
-          <Folder className="w-4 h-4 text-gray-500" />
+          <Folder className="folder-icon collapsed" />
         )}
         
         {editingFolder === folder.id ? (
@@ -156,69 +131,62 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
                 handleFolderSave(folder.id);
               }
             }}
-            className="flex-1 bg-transparent border-none outline-none text-sm"
+            className="folder-name-input"
             autoFocus
           />
         ) : (
-          <span className="flex-1 text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }} draggable={false} >
+          <span className="folder-name">
             {folder.name}
           </span>
         )}
         
-        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
+        <div className="folder-actions">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onFolderCreate(folder.id);
             }}
-            className="p-1 rounded hover:bg-gray-200"
+            className="folder-action-button"
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="folder-action-icon" />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleFolderEdit(folder.id, folder.name);
             }}
-            className="p-1 rounded hover:bg-gray-200"
+            className="folder-action-button"
           >
-            <MoreHorizontal className="w-3 h-3" />
+            <MoreHorizontal className="folder-action-icon" />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onFolderDelete(folder.id);
             }}
-            className="p-1 rounded hover:bg-red-200 text-red-600"
+            className="folder-action-button delete"
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className="folder-action-icon" />
           </button>
         </div>
-      </motion.div>
+      </div>
       
-      <AnimatePresence>
-        {folder.isExpanded && folder.children && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {folder.children.map(child => renderFolder(child, level + 1))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {folder.isExpanded && folder.children && (
+        <div className="folder-children">
+          {folder.children.map(child => renderFolder(child, level + 1))}
+        </div>
+      )}
     </div>
   );
 
   if (isCollapsed) {
     return (
-      <div className="w-12 bg-white border-r border-gray-200 h-full flex flex-col items-center py-4">
+      <div className="sidebar-collapsed">
         <button
           onClick={onCollapse}
-          className="p-2 rounded hover:bg-gray-100"
+          className="collapse-button"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="collapse-icon" />
         </button>
       </div>
     );
@@ -226,60 +194,56 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
 
   return (
     <div 
-      className="bg-white border-r border-gray-200 h-full flex relative z-30"
+      className="folder-sidebar"
       style={{ width }}
       onDragLeave={handleDragLeave}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-800" style={{ userSelect: 'none', pointerEvents: 'none' }}>
+      <div className="sidebar-content">
+        <div className="sidebar-header">
+          <div className="header-row">
+            <h2 className="sidebar-title">
               Folders
             </h2>
-            <div className="flex items-center gap-1">
+            <div className="header-buttons">
               <button
                 onClick={() => onFolderCreate()}
-                className="p-1 rounded hover:bg-gray-100"
+                className="header-button"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="header-icon" />
               </button>
               <button
                 onClick={onCollapse}
-                className="p-1 rounded hover:bg-gray-100"
+                className="header-button"
               >
-                <ChevronsLeft className="w-4 h-4" />
+                <ChevronsLeft className="header-icon" />
               </button>
             </div>
           </div>
           
           <button
             onClick={() => onFolderSelect(null)}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-gray-100 transition-all ${
-              selectedFolder === null ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
-            } ${dragOverFolder === null && isDragActive ? 'bg-blue-200 border-2 border-blue-400 border-dashed shadow-lg' : ''}`}
+            className={`all-notes-button ${selectedFolder === null ? 'selected' : ''} ${dragOverFolder === null && isDragActive ? 'drag-over' : ''}`}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}
             onDragEnd={handleDragEnd}
-            style={{ userSelect: 'none' }}
           >
-            <FolderOpen className="w-4 h-4" />
-            <span className="text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }}>
+            <FolderOpen className="all-notes-icon" />
+            <span className="all-notes-text">
               All Notes
             </span>
           </button>
         </div>
         
-        <div className="flex-1 overflow-auto p-2">
+        <div className="folders-container">
           {folders.map(folder => renderFolder(folder))}
         </div>
       </div>
 
-      {/* Resize handle */}
       <div
         onMouseDown={handleResizeStart}
-        className={`w-1 cursor-col-resize hover:bg-blue-300 transition-colors ${isResizing ? 'bg-blue-400' : 'bg-transparent'}`}
+        className={`resize-handle ${isResizing ? 'resizing' : ''}`}
       />
     </div>
   );

@@ -1,35 +1,26 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Menu, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import StickyNote from './StickyNote';
 import ColorPicker from './ColorPicker';
-import FolderSidebar, { Folder } from './FolderSidebar';
+import FolderSidebar from './FolderSidebar';
+import '../styles/StickyNotesBoard.css';
 
-interface Note {
-  id: string;
-  content: string;
-  color: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  folderId?: string;
-}
-
-const StickyNotesBoard: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
+const StickyNotesBoard = () => {
+  const [notes, setNotes] = useState([]);
   const [selectedColor, setSelectedColor] = useState('bg-yellow-200');
-  const [folders, setFolders] = useState<Folder[]>([
+  const [folders, setFolders] = useState([
     { id: 'travel', name: 'Travel Ideas', isExpanded: true, children: [] },
     { id: 'restaurants', name: 'Restaurants', isExpanded: false, children: [] },
     { id: 'work', name: 'Work Projects', isExpanded: false, children: [] },
   ]);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [draggedNote, setDraggedNote] = useState<string | null>(null);
+  const [draggedNote, setDraggedNote] = useState(null);
 
   const createNote = () => {
     const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
-    const newNote: Note = {
+    const newNote = {
       id: Date.now().toString(),
       content: '',
       color: selectedColor,
@@ -43,17 +34,17 @@ const StickyNotesBoard: React.FC = () => {
     setNotes([...notes, newNote]);
   };
 
-  const updateNote = (id: string, content: string) => {
+  const updateNote = (id, content) => {
     setNotes(notes.map(note => 
       note.id === id ? { ...note, content } : note
     ));
   };
 
-  const deleteNote = (id: string) => {
+  const deleteNote = (id) => {
     setNotes(notes.filter(note => note.id !== id));
   };
 
-  const moveNote = (id: string, position: { x: number; y: number }) => {
+  const moveNote = (id, position) => {
     const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
     const constrainedPosition = {
       x: Math.max(currentSidebarWidth, position.x),
@@ -65,20 +56,20 @@ const StickyNotesBoard: React.FC = () => {
     ));
   };
 
-  const resizeNote = (id: string, size: { width: number; height: number }) => {
+  const resizeNote = (id, size) => {
     setNotes(notes.map(note => 
       note.id === id ? { ...note, size } : note
     ));
   };
 
-  const handleNoteDrop = (noteId: string, folderId: string | null) => {
+  const handleNoteDrop = (noteId, folderId) => {
     setNotes(notes.map(note => 
       note.id === noteId ? { ...note, folderId: folderId || undefined } : note
     ));
     setDraggedNote(null);
   };
 
-  const handleNoteDragStart = (noteId: string) => {
+  const handleNoteDragStart = (noteId) => {
     setDraggedNote(noteId);
   };
 
@@ -86,8 +77,8 @@ const StickyNotesBoard: React.FC = () => {
     setDraggedNote(null);
   };
 
-  const createFolder = (parentId?: string) => {
-    const newFolder: Folder = {
+  const createFolder = (parentId) => {
+    const newFolder = {
       id: Date.now().toString(),
       name: 'New Folder',
       isExpanded: true,
@@ -95,7 +86,7 @@ const StickyNotesBoard: React.FC = () => {
     };
 
     if (parentId) {
-      const updateFoldersRecursively = (folderList: Folder[]): Folder[] => {
+      const updateFoldersRecursively = (folderList) => {
         return folderList.map(folder => {
           if (folder.id === parentId) {
             return {
@@ -117,8 +108,8 @@ const StickyNotesBoard: React.FC = () => {
     }
   };
 
-  const deleteFolder = (folderId: string) => {
-    const deleteFolderRecursively = (folderList: Folder[]): Folder[] => {
+  const deleteFolder = (folderId) => {
+    const deleteFolderRecursively = (folderList) => {
       return folderList
         .filter(folder => folder.id !== folderId)
         .map(folder => ({
@@ -137,8 +128,8 @@ const StickyNotesBoard: React.FC = () => {
     }
   };
 
-  const renameFolder = (folderId: string, newName: string) => {
-    const renameFolderRecursively = (folderList: Folder[]): Folder[] => {
+  const renameFolder = (folderId, newName) => {
+    const renameFolderRecursively = (folderList) => {
       return folderList.map(folder => {
         if (folder.id === folderId) {
           return { ...folder, name: newName };
@@ -154,8 +145,8 @@ const StickyNotesBoard: React.FC = () => {
     setFolders(renameFolderRecursively(folders));
   };
 
-  const toggleFolder = (folderId: string) => {
-    const toggleFolderRecursively = (folderList: Folder[]): Folder[] => {
+  const toggleFolder = (folderId) => {
+    const toggleFolderRecursively = (folderList) => {
       return folderList.map(folder => {
         if (folder.id === folderId) {
           return { ...folder, isExpanded: !folder.isExpanded };
@@ -178,13 +169,8 @@ const StickyNotesBoard: React.FC = () => {
   const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden flex">
-      {/* Sidebar */}
-      <motion.div
-        animate={{ width: currentSidebarWidth }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed left-0 top-0 h-full z-40"
-      >
+    <div className="sticky-notes-board">
+      <div className="sidebar-container" style={{ width: currentSidebarWidth }}>
         <FolderSidebar
           folders={folders}
           selectedFolder={selectedFolder}
@@ -199,75 +185,59 @@ const StickyNotesBoard: React.FC = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
         />
-      </motion.div>
+      </div>
 
-      {/* Main Content */}
       <div 
-        className="flex-1 transition-all duration-300"
+        className="main-content"
         style={{ marginLeft: currentSidebarWidth }}
       >
-        {/* Header */}
         <div 
-          className="fixed top-0 right-0 z-50 p-6" 
+          className="header" 
           style={{ left: currentSidebarWidth }}
         >
-          <div className="flex justify-between items-center">
-            <motion.h1 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-3xl font-bold text-gray-800"
-            >
+          <div className="header-content">
+            <h1 className="app-title">
               ✨ Sticky Spark
-            </motion.h1>
+            </h1>
             
-            <div className="flex items-center gap-4">
+            <div className="header-controls">
               <ColorPicker 
                 selectedColor={selectedColor}
                 onColorSelect={setSelectedColor}
               />
               
-              <motion.button
+              <button
                 onClick={createNote}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow text-gray-700 font-medium"
+                className="new-note-button"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="new-note-icon" />
                 New Note
-              </motion.button>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Board */}
-        <div className="absolute inset-0 pt-24">
+        <div className="board">
           {filteredNotes.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-col items-center justify-center h-full text-center"
-            >
-              <div className="text-6xl mb-4">📝</div>
-              <h2 className="text-2xl font-semibold text-gray-600 mb-2">
+            <div className="empty-state">
+              <div className="empty-emoji">📝</div>
+              <h2 className="empty-title">
                 {selectedFolder ? 'No notes in this folder yet' : 'Ready to capture your ideas?'}
               </h2>
-              <p className="text-gray-500 mb-6 max-w-md">
+              <p className="empty-description">
                 {selectedFolder 
                   ? 'Create your first note in this folder and start organizing your thoughts!'
                   : 'Create your first sticky note and start brainstorming. Perfect for travel plans, restaurant lists, or your next big idea!'
                 }
               </p>
-              <motion.button
+              <button
                 onClick={createNote}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-6 py-3 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-medium text-gray-800 shadow-lg transition-colors"
+                className="create-first-note-button"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="create-first-note-icon" />
                 Create Your First Note
-              </motion.button>
-            </motion.div>
+              </button>
+            </div>
           )}
 
           {filteredNotes.map((note) => (
@@ -279,7 +249,7 @@ const StickyNotesBoard: React.FC = () => {
                 handleNoteDragStart(note.id);
               }}
               onDragEnd={handleNoteDragEnd}
-              className={draggedNote === note.id ? 'opacity-60' : ''}
+              className={`note-container ${draggedNote === note.id ? 'dragging' : ''}`}
             >
               <StickyNote
                 id={note.id}
@@ -296,14 +266,7 @@ const StickyNotesBoard: React.FC = () => {
           ))}
         </div>
 
-        {/* Subtle grid pattern */}
-        <div 
-          className="absolute inset-0 opacity-5 pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle, #000 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
-          }}
-        />
+        <div className="grid-pattern" />
       </div>
     </div>
   );
