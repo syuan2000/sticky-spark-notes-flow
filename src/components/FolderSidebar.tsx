@@ -80,7 +80,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     e.preventDefault();
     e.stopPropagation();
     const noteId = e.dataTransfer.getData('text/plain');
-    if (noteId && dragOverFolder !== null) {
+    if (noteId) {
       onNoteDrop(noteId, folderId);
     }
     setDragOverFolder(null);
@@ -115,7 +115,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
   };
 
   const renderFolder = (folder: Folder, level: number = 0) => (
-    <div key={folder.id}>
+    <div key={folder.id} className="select-none">
       <motion.div
         className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-100 group transition-all ${
           selectedFolder === folder.id ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
@@ -160,15 +160,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
             autoFocus
           />
         ) : (
-          <span 
-            className="flex-1 text-sm font-medium select-none pointer-events-none" 
-            style={{ 
-              userSelect: 'none', 
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none'
-            }}
-          >
+          <span className="flex-1 text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }} draggable={false} >
             {folder.name}
           </span>
         )}
@@ -234,29 +226,15 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
 
   return (
     <div 
-      className="bg-white border-r border-gray-200 h-full flex relative z-30 select-none"
-      style={{ 
-        width,
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        MozUserSelect: 'none',
-        msUserSelect: 'none'
-      }}
+      className="bg-white border-r border-gray-200 h-full flex relative z-30"
+      style={{ width }}
       onDragLeave={handleDragLeave}
       onDragEnd={handleDragEnd}
     >
       <div className="flex-1 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
-            <h2 
-              className="text-lg font-semibold text-gray-800 select-none pointer-events-none" 
-              style={{ 
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                MozUserSelect: 'none',
-                msUserSelect: 'none'
-              }}
-            >
+            <h2 className="text-lg font-semibold text-gray-800" style={{ userSelect: 'none', pointerEvents: 'none' }}>
               Folders
             </h2>
             <div className="flex items-center gap-1">
@@ -284,23 +262,10 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}
             onDragEnd={handleDragEnd}
-            style={{ 
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none'
-            }}
+            style={{ userSelect: 'none' }}
           >
             <FolderOpen className="w-4 h-4" />
-            <span 
-              className="text-sm font-medium select-none pointer-events-none"
-              style={{ 
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                MozUserSelect: 'none',
-                msUserSelect: 'none'
-              }}
-            >
+            <span className="text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }}>
               All Notes
             </span>
           </button>
