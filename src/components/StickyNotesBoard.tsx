@@ -26,6 +26,14 @@ const StickyNotesBoard: React.FC = () => {
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [draggedNote, setDraggedNote] = useState<string | null>(null);
+  const [availableColors, setAvailableColors] = useState([
+    'bg-yellow-200',
+    'bg-pink-200', 
+    'bg-blue-200',
+    'bg-green-200',
+    'bg-purple-200',
+    'bg-orange-200'
+  ]);
 
   const createNote = () => {
     const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
@@ -72,6 +80,7 @@ const StickyNotesBoard: React.FC = () => {
   };
 
   const handleNoteDrop = (noteId: string, folderId: string | null) => {
+    console.log('Dropping note:', noteId, 'into folder:', folderId);
     setNotes(notes.map(note => 
       note.id === noteId ? { ...note, folderId: folderId || undefined } : note
     ));
@@ -224,6 +233,8 @@ const StickyNotesBoard: React.FC = () => {
               <ColorPicker 
                 selectedColor={selectedColor}
                 onColorSelect={setSelectedColor}
+                availableColors={availableColors}
+                onColorsChange={setAvailableColors}
               />
               
               <motion.button
