@@ -18,6 +18,24 @@ const StickyNotesBoard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [draggedNote, setDraggedNote] = useState(null);
 
+  const getNoteCountForFolder = (folderId) => {
+    return notes.filter(note => note.folderId === folderId).length;
+  };
+
+  const getAllNoteCounts = () => {
+    const counts = {};
+    const countRecursively = (folders) => {
+      folders.forEach(folder => {
+        counts[folder.id] = getNoteCountForFolder(folder.id);
+        if (folder.children) {
+          countRecursively(folder.children);
+        }
+      });
+    };
+    countRecursively(folders);
+    return counts;
+  };
+
   const createNote = () => {
     const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
     const newNote = {
@@ -167,6 +185,7 @@ const StickyNotesBoard = () => {
     : notes.filter(note => !note.folderId);
 
   const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
+  const noteCounts = getAllNoteCounts();
 
   return (
     <div className="sticky-notes-board">
@@ -184,6 +203,7 @@ const StickyNotesBoard = () => {
           onWidthChange={setSidebarWidth}
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
+          noteCounts={noteCounts}
         />
       </div>
 

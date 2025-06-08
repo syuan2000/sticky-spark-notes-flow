@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Plus, MoreHorizontal, Trash2, ChevronsLeft } from 'lucide-react';
 import '../styles/FolderSidebar.css';
@@ -16,6 +15,7 @@ const FolderSidebar = ({
   onWidthChange,
   onCollapse,
   onNoteDrop,
+  noteCounts,
 }) => {
   const [editingFolder, setEditingFolder] = useState(null);
   const [editingName, setEditingName] = useState('');
@@ -135,9 +135,16 @@ const FolderSidebar = ({
             autoFocus
           />
         ) : (
-          <span className="folder-name">
-            {folder.name}
-          </span>
+          <div className="folder-name-container">
+            <span className="folder-name">
+              {folder.name}
+            </span>
+            {noteCounts[folder.id] > 0 && (
+              <span className="note-count-badge">
+                {noteCounts[folder.id]}
+              </span>
+            )}
+          </div>
         )}
         
         <div className="folder-actions">
