@@ -80,7 +80,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     e.preventDefault();
     e.stopPropagation();
     const noteId = e.dataTransfer.getData('text/plain');
-    if (noteId && dragOverFolder !== null) {
+    if (noteId) {
       onNoteDrop(noteId, folderId);
     }
     setDragOverFolder(null);
@@ -160,7 +160,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
             autoFocus
           />
         ) : (
-          <span className="flex-1 text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }}>
+          <span className="flex-1 text-sm font-medium" style={{ userSelect: 'none', pointerEvents: 'none' }} draggable={false} >
             {folder.name}
           </span>
         )}
@@ -226,7 +226,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
 
   return (
     <div 
-      className="bg-white border-r border-gray-200 h-full flex relative z-40"
+      className="bg-white border-r border-gray-200 h-full flex relative z-30"
       style={{ width }}
       onDragLeave={handleDragLeave}
       onDragEnd={handleDragEnd}
