@@ -15,9 +15,16 @@ const defaultColors = [
 interface ColorPickerProps {
   selectedColor: string;
   onColorSelect: (color: string) => void;
+  availableColors: string[];
+  onColorsChange: (colors: string[]) => void;
 }
 
-const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorSelect }) => {
+const ColorPicker: React.FC<ColorPickerProps> = ({ 
+  selectedColor, 
+  onColorSelect, 
+  availableColors, 
+  onColorsChange 
+}) => {
   const [customColors, setCustomColors] = useState<Array<{ name: string; class: string; hex: string }>>([]);
   const [deletedDefaultColors, setDeletedDefaultColors] = useState<string[]>([]);
   const [isPickingColor, setIsPickingColor] = useState(false);
