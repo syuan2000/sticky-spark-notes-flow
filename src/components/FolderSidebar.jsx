@@ -45,15 +45,14 @@ const FolderSidebar = ({
   };
 
   const handleDragLeave = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  // Only clear dragOverFolder if we're truly outside the sidebar or folder item
-  const related = e.relatedTarget;
-  if (!e.currentTarget.contains(related)) {
-    setDragOverFolder(null);
-  }
-};
-
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+      setDragOverFolder(null);
+    }
+  };
 
   const handleDrop = (e, folderId) => {
     e.preventDefault();

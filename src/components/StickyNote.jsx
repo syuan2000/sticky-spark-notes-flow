@@ -106,7 +106,7 @@ const StickyNote = ({
   };
 
   const noteStyle = {
-    transform: `translate(${position.x}px, ${position.y}px)`,
+    transform: `translate(${position.x}px, ${position.y}px) rotate(${Math.random() * 6 - 3}deg)`,
     width: size.width,
     height: size.height,
     backgroundColor: getBackgroundColor(),
