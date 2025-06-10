@@ -17,7 +17,7 @@ const StickyNotesBoard = () => {
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [draggedNote, setDraggedNote] = useState(null);
-  const [draggedNoteOriginalPosition, setDraggedNoteOriginalPosition] = useState(null);
+  const [dragPreview, setDragPreview] = useState({ show: false, x: 0, y: 0 });
 
   const getNoteCountForFolder = (folderId) => {
     return notes.filter(note => note.folderId === folderId).length;
@@ -86,24 +86,27 @@ const StickyNotesBoard = () => {
       note.id === noteId ? { ...note, folderId: folderId || undefined } : note
     ));
     setDraggedNote(null);
-    setDraggedNoteOriginalPosition(null);
+    setDragPreview({ show: false, x: 0, y: 0 });
   };
 
-  const handleNoteDragStart = (noteId) => {
+  const handleDragStart = (noteId) => {
     const note = notes.find(n => n.id === noteId);
-    setDraggedNote(noteId);
-    setDraggedNoteOriginalPosition(note.position);
+    setDraggedNote(note);
   };
 
-  const handleNoteDragEnd = () => {
-    // If note wasn't dropped in a folder, return to original position
-    if (draggedNote && draggedNoteOriginalPosition) {
-      setNotes(notes.map(note => 
-        note.id === draggedNote ? { ...note, position: draggedNoteOriginalPosition } : note
-      ));
-    }
+  const handleDragEnd = () => {
     setDraggedNote(null);
-    setDraggedNoteOriginalPosition(null);
+    setDragPreview({ show: false, x: 0, y: 0 });
+  };
+
+  const handleMouseMove = (e) => {
+    if (draggedNote) {
+      setDragPreview({
+        show: true,
+        x: e.clientX,
+        y: e.clientY
+      });
+    }
   };
 
   const createFolder = (parentId) => {
@@ -199,7 +202,10 @@ const StickyNotesBoard = () => {
   const noteCounts = getAllNoteCounts();
 
   return (
-    <div className="sticky-notes-board">
+    <div 
+      className="sticky-notes-board"
+      onMouseMove={handleMouseMove}
+    >
       <div className="sidebar-container" style={{ width: currentSidebarWidth }}>
         <FolderSidebar
           folders={folders}
@@ -215,6 +221,7 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           noteCounts={noteCounts}
+          draggedNote={draggedNote}
         />
       </div>
 
@@ -274,13 +281,7 @@ const StickyNotesBoard = () => {
           {filteredNotes.map((note) => (
             <div
               key={note.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', note.id);
-                handleNoteDragStart(note.id);
-              }}
-              onDragEnd={handleNoteDragEnd}
-              className={`note-container ${draggedNote === note.id ? 'dragging' : ''}`}
+              className={`note-container ${draggedNote?.id === note.id ? 'note-being-dragged' : ''}`}
             >
               <StickyNote
                 id={note.id}
@@ -292,10 +293,44 @@ const StickyNotesBoard = () => {
                 onDelete={deleteNote}
                 onMove={moveNote}
                 onResize={resizeNote}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                isDragging={draggedNote?.id === note.id}
               />
             </div>
           ))}
         </div>
+
+        {/* Drag preview */}
+        {dragPreview.show && draggedNote && (
+          <div
+            className="drag-preview"
+            style={{
+              position: 'fixed',
+              left: dragPreview.x - 96,
+              top: dragPreview.y - 96,
+              width: draggedNote.size.width,
+              height: draggedNote.size.height,
+              pointerEvents: 'none',
+              zIndex: 9999,
+              opacity: 0.7,
+              transform: 'scale(0.8)',
+            }}
+          >
+            <div
+              className={`sticky-note ${draggedNote.color}`}
+              style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: draggedNote.color.startsWith('bg-[') ? draggedNote.color.slice(4, -1) : undefined,
+              }}
+            >
+              <div className="note-content" style={{ height: draggedNote.size.height - 80 }}>
+                {draggedNote.content || "Double-click to edit..."}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid-pattern" />
       </div>

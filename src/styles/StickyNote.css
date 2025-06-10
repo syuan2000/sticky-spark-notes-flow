@@ -7,10 +7,16 @@
   cursor: move;
   user-select: none;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  transition: none;
+}
+
+.sticky-note:hover {
+  transform: scale(1.02);
+  rotate: 0deg;
 }
 
 .sticky-note.dragging {
+  transform: scale(1.05);
+  rotate: 0deg;
   z-index: 1000;
 }
 
