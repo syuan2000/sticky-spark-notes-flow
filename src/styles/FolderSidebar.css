@@ -1,3 +1,4 @@
+
 .folder-sidebar {
   background-color: white;
   border-right: 1px solid #e5e7eb;
@@ -117,6 +118,7 @@
 .all-notes-icon {
   width: 1rem;
   height: 1rem;
+  pointer-events: none;
 }
 
 .all-notes-text {
@@ -173,16 +175,19 @@
   background: transparent;
   border: none;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .folder-toggle-icon {
   width: 0.75rem;
   height: 0.75rem;
+  pointer-events: none;
 }
 
 .folder-icon {
   width: 1rem;
   height: 1rem;
+  pointer-events: none;
 }
 
 .folder-icon.expanded {
@@ -198,6 +203,7 @@
   align-items: center;
   flex: 1;
   gap: 0.5rem;
+  pointer-events: none;
 }
 
 .folder-name {
@@ -238,6 +244,7 @@
   align-items: center;
   gap: 0.25rem;
   transition: opacity 0.3s ease;
+  pointer-events: auto;
 }
 
 .folder-row:hover .folder-actions {
@@ -251,6 +258,7 @@
   border: none;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  pointer-events: auto;
 }
 
 .folder-action-button:hover {
@@ -265,6 +273,7 @@
 .folder-action-icon {
   width: 0.75rem;
   height: 0.75rem;
+  pointer-events: none;
 }
 
 .folder-children {

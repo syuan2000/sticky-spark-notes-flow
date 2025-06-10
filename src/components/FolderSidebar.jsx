@@ -48,11 +48,6 @@ const FolderSidebar = ({
   const handleDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const { clientX, clientY } = e;
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
-      setDragOverFolder(null);
-    }
   };
 
   const handleDrop = (e, folderId) => {
@@ -102,7 +97,6 @@ const FolderSidebar = ({
         onDragOver={(e) => handleDragOver(e, folder.id)}
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, folder.id)}
-        onDragEnd={handleDragEnd}
       >
         <button
           onClick={(e) => {
@@ -235,7 +229,6 @@ const FolderSidebar = ({
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}
-            onDragEnd={handleDragEnd}
           >
             <FolderOpen className="all-notes-icon" />
             <span className="all-notes-text">
