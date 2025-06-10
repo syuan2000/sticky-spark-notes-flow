@@ -96,7 +96,7 @@ const StickyNote = ({
   };
 
   const noteStyle = {
-    transform: `translate(${position.x}px, ${position.y}px) ${isDragging ? 'scale(1.05)' : 'scale(1)'} rotate(${isDragging ? 0 : Math.random() * 6 - 3}deg)`,
+    transform: `translate(${position.x}px, ${position.y}px) ${isDragging ? 'scale(1.05)' : 'scale(1)'}`,
     width: size.width,
     height: size.height,
     zIndex: isDragging ? 1000 : 1,
