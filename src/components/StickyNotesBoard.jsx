@@ -16,7 +16,6 @@ const StickyNotesBoard = () => {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [draggedNote, setDraggedNote] = useState(null);
 
   const getNoteCountForFolder = (folderId) => {
     return notes.filter(note => note.folderId === folderId).length;
@@ -84,15 +83,6 @@ const StickyNotesBoard = () => {
     setNotes(notes.map(note => 
       note.id === noteId ? { ...note, folderId: folderId || undefined } : note
     ));
-    setDraggedNote(null);
-  };
-
-  const handleNoteDragStart = (noteId) => {
-    setDraggedNote(noteId);
-  };
-
-  const handleNoteDragEnd = () => {
-    setDraggedNote(null);
   };
 
   const createFolder = (parentId) => {
@@ -266,10 +256,8 @@ const StickyNotesBoard = () => {
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', note.id);
-                handleNoteDragStart(note.id);
               }}
-              onDragEnd={handleNoteDragEnd}
-              className={`note-container ${draggedNote === note.id ? 'dragging' : ''}`}
+              className="note-container"
             >
               <StickyNote
                 id={note.id}
