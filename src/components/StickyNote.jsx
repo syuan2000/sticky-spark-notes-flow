@@ -13,10 +13,12 @@ const StickyNote = ({
   onDelete,
   onMove,
   onResize,
+  onDragStart,
+  onDragEnd,
+  isDragging,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(content);
-  const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
@@ -64,7 +66,6 @@ const StickyNote = ({
   const handleMouseDown = (e) => {
     if (isResizing || isEditing) return;
     
-    setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
       y: e.clientY - position.y
@@ -78,13 +79,22 @@ const StickyNote = ({
     };
 
     const handleMouseUp = () => {
-      setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart(id);
+  };
+
+  const handleDragEnd = () => {
+    onDragEnd();
   };
 
   // Extract hex color from custom color classes like bg-[#hexcode]
@@ -96,18 +106,21 @@ const StickyNote = ({
   };
 
   const noteStyle = {
-    transform: `translate(${position.x}px, ${position.y}px) ${isDragging ? 'scale(1.05)' : 'scale(1)'}`,
+    transform: `translate(${position.x}px, ${position.y}px) rotate(${Math.random() * 6 - 3}deg)`,
     width: size.width,
     height: size.height,
-    zIndex: isDragging ? 1000 : 1,
     backgroundColor: getBackgroundColor(),
+    opacity: isDragging ? 0.3 : 1,
   };
 
   return (
     <div
-      className={`sticky-note ${getBackgroundColor() ? '' : color} ${isDragging ? 'dragging' : ''}`}
+      className={`sticky-note ${getBackgroundColor() ? '' : color}`}
       style={noteStyle}
       onMouseDown={!isResizing ? handleMouseDown : undefined}
+      draggable={!isEditing && !isResizing}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <div className="sticky-note-header">
         <GripVertical className="grip-icon" />
