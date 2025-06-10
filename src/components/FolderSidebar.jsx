@@ -58,7 +58,7 @@ const FolderSidebar = ({
     e.preventDefault();
     e.stopPropagation();
     const noteId = e.dataTransfer.getData('text/plain');
-    if (noteId && draggedNote) {
+    if (noteId) {
       onNoteDrop(noteId, folderId);
     }
     setDragOverFolder(null);
