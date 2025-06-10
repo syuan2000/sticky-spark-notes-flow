@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Plus, MoreHorizontal, Trash2, ChevronsLeft } from 'lucide-react';
 import '../styles/FolderSidebar.css';
@@ -96,7 +97,6 @@ const FolderSidebar = ({
         className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && draggedNote ? 'drag-over' : ''}`}
         style={{ 
           paddingLeft: `${12 + level * 16}px`,
-          userSelect: 'none',
         }}
         onClick={() => onFolderSelect(folder.id)}
         onDragOver={(e) => handleDragOver(e, folder.id)}
@@ -232,7 +232,6 @@ const FolderSidebar = ({
           <button
             onClick={() => onFolderSelect(null)}
             className={`all-notes-button ${selectedFolder === null ? 'selected' : ''} ${dragOverFolder === null && draggedNote ? 'drag-over' : ''}`}
-            style={{ userSelect: 'none' }}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}

@@ -145,6 +145,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   color: #374151;
+  user-select: none;
 }
 
 .folder-row:hover {
