@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, X, Droplet } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import '../styles/ColorPicker.css';
 
 const defaultColors = [
@@ -111,7 +111,7 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
               onClick={() => setIsPickingColor(true)}
               className="add-color-button"
             >
-              <Droplet className="w-4 h-4 text-gray-600" />
+              <Plus className="w-4 h-4 text-gray-600" />
             </button>
           )}
         </div>

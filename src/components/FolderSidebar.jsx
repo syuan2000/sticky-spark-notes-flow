@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Plus, MoreHorizontal, Trash2, ChevronsLeft } from 'lucide-react';
 import '../styles/FolderSidebar.css';
@@ -48,6 +47,11 @@ const FolderSidebar = ({
   const handleDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+      setDragOverFolder(null);
+    }
   };
 
   const handleDrop = (e, folderId) => {
@@ -92,11 +96,13 @@ const FolderSidebar = ({
         className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && draggedNote ? 'drag-over' : ''}`}
         style={{ 
           paddingLeft: `${12 + level * 16}px`,
+          userSelect: 'none',
         }}
         onClick={() => onFolderSelect(folder.id)}
         onDragOver={(e) => handleDragOver(e, folder.id)}
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, folder.id)}
+        onDragEnd={handleDragEnd}
       >
         <button
           onClick={(e) => {
@@ -226,9 +232,11 @@ const FolderSidebar = ({
           <button
             onClick={() => onFolderSelect(null)}
             className={`all-notes-button ${selectedFolder === null ? 'selected' : ''} ${dragOverFolder === null && draggedNote ? 'drag-over' : ''}`}
+            style={{ userSelect: 'none' }}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}
+            onDragEnd={handleDragEnd}
           >
             <FolderOpen className="all-notes-icon" />
             <span className="all-notes-text">
