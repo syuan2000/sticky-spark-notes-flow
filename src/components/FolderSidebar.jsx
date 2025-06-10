@@ -16,12 +16,12 @@ const FolderSidebar = ({
   onCollapse,
   onNoteDrop,
   noteCounts,
-  draggedNote,
 }) => {
   const [editingFolder, setEditingFolder] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [dragOverFolder, setDragOverFolder] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const handleFolderEdit = (folderId, currentName) => {
     setEditingFolder(folderId);
@@ -39,9 +39,8 @@ const FolderSidebar = ({
   const handleDragOver = (e, folderId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (draggedNote) {
-      setDragOverFolder(folderId);
-    }
+    setDragOverFolder(folderId);
+    setIsDragActive(true);
   };
 
   const handleDragLeave = (e) => {
@@ -51,6 +50,7 @@ const FolderSidebar = ({
     const { clientX, clientY } = e;
     if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
       setDragOverFolder(null);
+      setIsDragActive(false);
     }
   };
 
@@ -62,10 +62,12 @@ const FolderSidebar = ({
       onNoteDrop(noteId, folderId);
     }
     setDragOverFolder(null);
+    setIsDragActive(false);
   };
 
   const handleDragEnd = () => {
     setDragOverFolder(null);
+    setIsDragActive(false);
   };
 
   const handleResizeStart = (e) => {
@@ -93,11 +95,8 @@ const FolderSidebar = ({
   const renderFolder = (folder, level = 0) => (
     <div key={folder.id} className="folder-item">
       <div
-        className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && draggedNote ? 'drag-over' : ''}`}
-        style={{ 
-          paddingLeft: `${12 + level * 16}px`,
-          userSelect: 'none',
-        }}
+        className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && isDragActive ? 'drag-over' : ''}`}
+        style={{ paddingLeft: `${12 + level * 16}px` }}
         onClick={() => onFolderSelect(folder.id)}
         onDragOver={(e) => handleDragOver(e, folder.id)}
         onDragLeave={handleDragLeave}
@@ -231,8 +230,7 @@ const FolderSidebar = ({
           
           <button
             onClick={() => onFolderSelect(null)}
-            className={`all-notes-button ${selectedFolder === null ? 'selected' : ''} ${dragOverFolder === null && draggedNote ? 'drag-over' : ''}`}
-            style={{ userSelect: 'none' }}
+            className={`all-notes-button ${selectedFolder === null ? 'selected' : ''} ${dragOverFolder === null && isDragActive ? 'drag-over' : ''}`}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, null)}
