@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Folder, FolderOpen, Plus, MoreHorizontal, Trash2, ChevronsLeft } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  Plus,
+  MoreHorizontal,
+  Trash2,
+  ChevronsLeft,
+} from 'lucide-react';
 import '../styles/FolderSidebar.css';
 
 const FolderSidebar = ({
@@ -16,12 +25,12 @@ const FolderSidebar = ({
   onCollapse,
   onNoteDrop,
   noteCounts,
+  draggedNoteId,
 }) => {
   const [editingFolder, setEditingFolder] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [dragOverFolder, setDragOverFolder] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
-  const [isDragActive, setIsDragActive] = useState(false);
 
   const handleFolderEdit = (folderId, currentName) => {
     setEditingFolder(folderId);
@@ -36,44 +45,29 @@ const FolderSidebar = ({
     setEditingName('');
   };
 
-  const handleDragOver = (e, folderId) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOverFolder(folderId);
-    setIsDragActive(true);
+  const handleDrop = (folderId) => {
+    if (draggedNoteId) {
+      onNoteDrop(draggedNoteId, folderId);
+    }
+    setDragOverFolder(null);
   };
 
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const { clientX, clientY } = e;
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+  const handleDragEnter = (folderId) => {
+    if (draggedNoteId) {
+      setDragOverFolder(folderId);
+    }
+  };
+
+  const handleDragLeave = (folderId) => {
+    if (dragOverFolder === folderId) {
       setDragOverFolder(null);
-      setIsDragActive(false);
     }
-  };
-
-  const handleDrop = (e, folderId) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const noteId = e.dataTransfer.getData('text/plain');
-    if (noteId) {
-      onNoteDrop(noteId, folderId);
-    }
-    setDragOverFolder(null);
-    setIsDragActive(false);
-  };
-
-  const handleDragEnd = () => {
-    setDragOverFolder(null);
-    setIsDragActive(false);
   };
 
   const handleResizeStart = (e) => {
     e.preventDefault();
     setIsResizing(true);
-    
+
     const startX = e.clientX;
     const startWidth = width;
 
@@ -95,13 +89,12 @@ const FolderSidebar = ({
   const renderFolder = (folder, level = 0) => (
     <div key={folder.id} className="folder-item">
       <div
-        className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && isDragActive ? 'drag-over' : ''}`}
+        className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id ? 'drag-over' : ''}`}
         style={{ paddingLeft: `${12 + level * 16}px` }}
         onClick={() => onFolderSelect(folder.id)}
-        onDragOver={(e) => handleDragOver(e, folder.id)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, folder.id)}
-        onDragEnd={handleDragEnd}
+        onMouseEnter={() => handleDragEnter(folder.id)}
+        onMouseLeave={() => handleDragLeave(folder.id)}
+        onMouseUp={() => handleDrop(folder.id)}
       >
         <button
           onClick={(e) => {
@@ -114,13 +107,13 @@ const FolderSidebar = ({
             folder.isExpanded ? <ChevronDown className="folder-toggle-icon" /> : <ChevronRight className="folder-toggle-icon" />
           ) : null}
         </button>
-        
+
         {folder.isExpanded ? (
           <FolderOpen className="folder-icon expanded" />
         ) : (
           <Folder className="folder-icon collapsed" />
         )}
-        
+
         {editingFolder === folder.id ? (
           <input
             value={editingName}
@@ -136,7 +129,7 @@ const FolderSidebar = ({
           />
         ) : (
           <div className="folder-name-container">
-            <span className="folder-name">
+            <span className="folder-name" draggable={false}>
               {folder.name}
             </span>
             {noteCounts[folder.id] > 0 && (
@@ -146,7 +139,7 @@ const FolderSidebar = ({
             )}
           </div>
         )}
-        
+
         <div className="folder-actions">
           <button
             onClick={(e) => {
@@ -177,7 +170,7 @@ const FolderSidebar = ({
           </button>
         </div>
       </div>
-      
+
       {folder.isExpanded && folder.children && (
         <div className="folder-children">
           {folder.children.map(child => renderFolder(child, level + 1))}
@@ -189,10 +182,7 @@ const FolderSidebar = ({
   if (isCollapsed) {
     return (
       <div className="sidebar-collapsed">
-        <button
-          onClick={onCollapse}
-          className="collapse-button"
-        >
+        <button onClick={onCollapse} className="collapse-button">
           <ChevronRight className="collapse-icon" />
         </button>
       </div>
@@ -200,18 +190,14 @@ const FolderSidebar = ({
   }
 
   return (
-    <div 
+    <div
       className="folder-sidebar"
       style={{ width }}
-      onDragLeave={handleDragLeave}
-      onDragEnd={handleDragEnd}
     >
       <div className="sidebar-content">
         <div className="sidebar-header">
           <div className="header-row">
-            <h2 className="sidebar-title">
-              Folders
-            </h2>
+            <h2 className="sidebar-title">Folders</h2>
             <div className="header-buttons">
               <button
                 onClick={() => onFolderCreate()}
@@ -219,30 +205,24 @@ const FolderSidebar = ({
               >
                 <Plus className="header-icon" />
               </button>
-              <button
-                onClick={onCollapse}
-                className="header-button"
-              >
+              <button onClick={onCollapse} className="header-button">
                 <ChevronsLeft className="header-icon" />
               </button>
             </div>
           </div>
-          
+
           <button
             onClick={() => onFolderSelect(null)}
-            className={`all-notes-button ${selectedFolder === null ? 'selected' : ''} ${dragOverFolder === null && isDragActive ? 'drag-over' : ''}`}
-            onDragOver={(e) => handleDragOver(e, null)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, null)}
-            onDragEnd={handleDragEnd}
+            className={`all-notes-button ${selectedFolder === null ? 'selected' : ''} ${dragOverFolder === null ? 'drag-over' : ''}`}
+            onMouseEnter={() => handleDragEnter(null)}
+            onMouseLeave={() => handleDragLeave(null)}
+            onMouseUp={() => handleDrop(null)}
           >
             <FolderOpen className="all-notes-icon" />
-            <span className="all-notes-text">
-              All Notes
-            </span>
+            <span className="all-notes-text">All Notes</span>
           </button>
         </div>
-        
+
         <div className="folders-container">
           {folders.map(folder => renderFolder(folder))}
         </div>

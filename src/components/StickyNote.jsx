@@ -13,6 +13,8 @@ const StickyNote = ({
   onDelete,
   onMove,
   onResize,
+  onStartDrag,
+  onEndDrag
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(content);
@@ -63,12 +65,15 @@ const StickyNote = ({
 
   const handleMouseDown = (e) => {
     if (isResizing || isEditing) return;
-    
+    e.preventDefault();
     setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
+    onStartDrag?.();
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    const move = e2 => onMove(id, { x: e2.clientX-dragStart.x, y: e2.clientY-dragStart.y });
+    const up = () => { setIsDragging(false); onEndDrag?.(); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  
 
     const handleMouseMove = (e) => {
       onMove(id, {
