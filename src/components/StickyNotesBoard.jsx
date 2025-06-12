@@ -17,7 +17,6 @@ const StickyNotesBoard = () => {
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [draggedNote, setDraggedNote] = useState(null);
-  const [draggedNoteOriginalPosition, setDraggedNoteOriginalPosition] = useState(null);
 
   const getNoteCountForFolder = (folderId) => {
     return notes.filter(note => note.folderId === folderId).length;
@@ -36,6 +35,8 @@ const StickyNotesBoard = () => {
     countRecursively(folders);
     return counts;
   };
+
+  const noteCounts = getAllNoteCounts();
 
   const createNote = () => {
     const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
@@ -63,16 +64,13 @@ const StickyNotesBoard = () => {
     setNotes(notes.filter(note => note.id !== id));
   };
 
-  const moveNote = (id, position) => {
-    const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
-    const constrainedPosition = {
-      x: Math.max(currentSidebarWidth, position.x),
-      y: Math.max(0, position.y)
-    };
-    
-    setNotes(notes.map(note => 
-      note.id === id ? { ...note, position: constrainedPosition } : note
-    ));
+  const moveNote = (id, pos) => {
+    const margin = sidebarCollapsed ? 48 : sidebarWidth;
+    setNotes(prev => prev.map(n =>
+      n.id === id
+        ? { ...n, position: { x: Math.max(pos.x, margin), y: Math.max(pos.y, 0) } }
+        : n)
+    );
   };
 
   const resizeNote = (id, size) => {
@@ -81,30 +79,17 @@ const StickyNotesBoard = () => {
     ));
   };
 
-  const handleNoteDrop = (noteId, folderId) => {
+  const handleNoteDrop = (dragNote, folderId) => {
     setNotes(notes.map(note => 
-      note.id === noteId ? { ...note, folderId: folderId || undefined } : note
+      note.id === dragNote.id ? 
+      { ...note, 
+        folderId: folderId || undefined,
+        position: dragNote.position
+      } : note
     ));
     setDraggedNote(null);
-    setDraggedNoteOriginalPosition(null);
   };
 
-  const handleNoteDragStart = (noteId) => {
-    const note = notes.find(n => n.id === noteId);
-    setDraggedNote(noteId);
-    setDraggedNoteOriginalPosition(note.position);
-  };
-
-  const handleNoteDragEnd = () => {
-    // If note wasn't dropped in a folder, return to original position
-    if (draggedNote && draggedNoteOriginalPosition) {
-      setNotes(notes.map(note => 
-        note.id === draggedNote ? { ...note, position: draggedNoteOriginalPosition } : note
-      ));
-    }
-    setDraggedNote(null);
-    setDraggedNoteOriginalPosition(null);
-  };
 
   const createFolder = (parentId) => {
     const newFolder = {
@@ -196,7 +181,7 @@ const StickyNotesBoard = () => {
     : notes.filter(note => !note.folderId);
 
   const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
-  const noteCounts = getAllNoteCounts();
+
 
   return (
     <div className="sticky-notes-board">
@@ -215,6 +200,7 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           noteCounts={noteCounts}
+          draggedNoteId={draggedNote}
         />
       </div>
 
@@ -272,28 +258,18 @@ const StickyNotesBoard = () => {
           )}
 
           {filteredNotes.map((note) => (
-            <div
-              key={note.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', note.id);
-                handleNoteDragStart(note.id);
-              }}
-              onDragEnd={handleNoteDragEnd}
-              className={`note-container ${draggedNote === note.id ? 'dragging' : ''}`}
-            >
+
               <StickyNote
-                id={note.id}
-                content={note.content}
-                color={note.color}
-                position={note.position}
-                size={note.size}
+              key={note.id}
+                {...note}
                 onUpdate={updateNote}
                 onDelete={deleteNote}
                 onMove={moveNote}
                 onResize={resizeNote}
+                onStartDrag={()=> {
+                  setDraggedNote(note);}}
+                onEndDrag={()=> setDraggedNote(null)}
               />
-            </div>
           ))}
         </div>
 
