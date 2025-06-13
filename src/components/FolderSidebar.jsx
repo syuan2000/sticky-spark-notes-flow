@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   ChevronDown,
@@ -87,105 +86,98 @@ const FolderSidebar = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const renderFolder = (folder, level = 0) => {
-    const hasChildren = folder.children && folder.children.length > 0;
-    
-    return (
-      <div key={folder.id} className="folder-item">
-        <div
-          className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id ? 'drag-over' : ''}`}
-          style={{ paddingLeft: `${12 + level * 16}px` }}
-          onClick={() => onFolderSelect(folder.id)}
-          onMouseEnter={() => handleDragEnter(folder.id)}
-          onMouseLeave={() => handleDragLeave(folder.id)}
-          onMouseUp={() => handleDrop(folder.id)}
+  const renderFolder = (folder, level = 0) => (
+    <div key={folder.id} className="folder-item">
+      <div
+        className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id ? 'drag-over' : ''}`}
+        style={{ paddingLeft: `${12 + level * 16}px` }}
+        onClick={() => onFolderSelect(folder.id)}
+        onMouseEnter={() => handleDragEnter(folder.id)}
+        onMouseLeave={() => handleDragLeave(folder.id)}
+        onMouseUp={() => handleDrop(folder.id)}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFolderToggle(folder.id);
+          }}
+          className="folder-toggle"
         >
+          {folder.children && folder.children.length > 0 ? (
+            folder.isExpanded ? <ChevronDown className="folder-toggle-icon" /> : <ChevronRight className="folder-toggle-icon" />
+          ) : null}
+        </button>
+
+        {folder.isExpanded ? (
+          <FolderOpen className="folder-icon expanded" />
+        ) : (
+          <Folder className="folder-icon collapsed" />
+        )}
+
+        {editingFolder === folder.id ? (
+          <input
+            value={editingName}
+            onChange={(e) => setEditingName(e.target.value)}
+            onBlur={() => handleFolderSave(folder.id)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleFolderSave(folder.id);
+              }
+            }}
+            className="folder-name-input"
+            autoFocus
+          />
+        ) : (
+          <div className="folder-name-container">
+            <span className="folder-name" draggable={false}>
+              {folder.name}
+            </span>
+            {noteCounts[folder.id] > 0 && (
+              <span className="note-count-badge">
+                {noteCounts[folder.id]}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="folder-actions">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (hasChildren) {
-                onFolderToggle(folder.id);
-              }
+              onFolderCreate(folder.id);
             }}
-            className="folder-toggle"
-            disabled={!hasChildren}
+            className="folder-action-button"
           >
-            {hasChildren ? (
-              folder.isExpanded ? <ChevronDown className="folder-toggle-icon" /> : <ChevronRight className="folder-toggle-icon" />
-            ) : null}
+            <Plus className="folder-action-icon" />
           </button>
-
-          {folder.isExpanded && hasChildren ? (
-            <FolderOpen className="folder-icon expanded" />
-          ) : (
-            <Folder className="folder-icon collapsed" />
-          )}
-
-          {editingFolder === folder.id ? (
-            <input
-              value={editingName}
-              onChange={(e) => setEditingName(e.target.value)}
-              onBlur={() => handleFolderSave(folder.id)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleFolderSave(folder.id);
-                }
-              }}
-              className="folder-name-input"
-              autoFocus
-            />
-          ) : (
-            <div className="folder-name-container">
-              <span className="folder-name" draggable={false}>
-                {folder.name}
-              </span>
-              {noteCounts[folder.id] > 0 && (
-                <span className="note-count-badge">
-                  {noteCounts[folder.id]}
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="folder-actions">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onFolderCreate(folder.id);
-              }}
-              className="folder-action-button"
-            >
-              <Plus className="folder-action-icon" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFolderEdit(folder.id, folder.name);
-              }}
-              className="folder-action-button"
-            >
-              <MoreHorizontal className="folder-action-icon" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onFolderDelete(folder.id);
-              }}
-              className="folder-action-button delete"
-            >
-              <Trash2 className="folder-action-icon" />
-            </button>
-          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleFolderEdit(folder.id, folder.name);
+            }}
+            className="folder-action-button"
+          >
+            <MoreHorizontal className="folder-action-icon" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFolderDelete(folder.id);
+            }}
+            className="folder-action-button delete"
+          >
+            <Trash2 className="folder-action-icon" />
+          </button>
         </div>
-
-        {folder.isExpanded && hasChildren && (
-          <div className="folder-children">
-            {folder.children.map(child => renderFolder(child, level + 1))}
-          </div>
-        )}
       </div>
-    );
-  };
+
+      {folder.isExpanded && folder.children && (
+        <div className="folder-children">
+          {folder.children.map(child => renderFolder(child, level + 1))}
+        </div>
+      )}
+    </div>
+  );
 
   if (isCollapsed) {
     return (
@@ -226,7 +218,7 @@ const FolderSidebar = ({
             onMouseLeave={() => handleDragLeave(null)}
             onMouseUp={() => handleDrop(null)}
           >
-            <Folder className="all-notes-icon" />
+            <FolderOpen className="all-notes-icon" />
             <span className="all-notes-text">All Notes</span>
           </button>
         </div>
@@ -239,15 +231,7 @@ const FolderSidebar = ({
       <div
         onMouseDown={handleResizeStart}
         className={`resize-handle ${isResizing ? 'resizing' : ''}`}
-      >
-        <div className="resize-indicator">
-          <div className="resize-dots">
-            <div className="resize-dot"></div>
-            <div className="resize-dot"></div>
-            <div className="resize-dot"></div>
-          </div>
-        </div>
-      </div>
+      />
     </div>
   );
 };
