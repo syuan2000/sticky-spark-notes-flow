@@ -1,3 +1,4 @@
+
 .folder-sidebar {
   background-color: white;
   border-right: 1px solid #e5e7eb;
@@ -226,9 +227,18 @@
 .folder-name-input {
   flex: 1;
   background: transparent;
-  border: none;
+  border: 1px solid #d1d5db;
   outline: none;
   font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  max-width: calc(100% - 6rem);
+  min-width: 0;
+}
+
+.folder-name-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .folder-actions {
@@ -271,16 +281,42 @@
 }
 
 .resize-handle {
-  width: 0.25rem;
+  width: 8px;
   cursor: col-resize;
-  background: transparent;
-  transition: background-color 0.3s ease;
+  background: rgba(156, 163, 175, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 40;
 }
 
 .resize-handle:hover {
   background-color: #93c5fd;
+  width: 12px;
 }
 
 .resize-handle.resizing {
   background-color: #60a5fa;
+  width: 12px;
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 40px;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    currentColor 2px,
+    currentColor 4px
+  );
+  opacity: 0.6;
+}
+
+.resize-handle:hover::before {
+  opacity: 1;
 }
