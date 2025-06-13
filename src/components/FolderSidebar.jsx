@@ -71,9 +71,10 @@ const FolderSidebar = ({
 
     const startX = e.clientX;
     const startWidth = width;
+    const maxWidth = Math.floor(window.innerWidth / 3);
 
     const handleMouseMove = (e) => {
-      const newWidth = Math.max(200, Math.min(500, startWidth + (e.clientX - startX)));
+      const newWidth = Math.max(200, Math.min(maxWidth, startWidth + (e.clientX - startX)));
       onWidthChange(newWidth);
     };
 
