@@ -1,18 +1,5 @@
 
-.color-picker-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(2px);
-  z-index: 49;
-}
-
 .color-picker {
-  position: relative;
-  z-index: 50;
   display: flex;
   gap: 0.5rem;
   padding: 0.5rem;
@@ -136,11 +123,3 @@
 .add-color-button.active {
   transform: scale(0.9);
 }
-
-/* Color classes */
-.bg-yellow-200 { background-color: #fef08a; }
-.bg-pink-200 { background-color: #fbcfe8; }
-.bg-blue-200 { background-color: #bfdbfe; }
-.bg-green-200 { background-color: #bbf7d0; }
-.bg-purple-200 { background-color: #e9d5ff; }
-.bg-orange-200 { background-color: #fed7aa; }
