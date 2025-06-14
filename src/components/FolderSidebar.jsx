@@ -88,13 +88,18 @@ const FolderSidebar = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const handleFolderDoubleClick = (folderId, currentName, e) => {
+    e.stopPropagation();
+    handleFolderEdit(folderId, currentName);
+  };
+
   const renderFolder = (folder, level = 0) => {
     const hasChildren = folder.children && folder.children.length > 0;
     
     return (
       <div key={folder.id} className="folder-item">
         <div
-          className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id ? 'drag-over' : ''}`}
+          className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && draggedNoteId ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onFolderSelect(folder.id)}
           onMouseEnter={() => handleDragEnter(folder.id)}
@@ -137,7 +142,11 @@ const FolderSidebar = ({
             />
           ) : (
             <div className="folder-name-container">
-              <span className="folder-name" draggable={false}>
+              <span 
+                className="folder-name" 
+                draggable={false}
+                onDoubleClick={(e) => handleFolderDoubleClick(folder.id, folder.name, e)}
+              >
                 {folder.name}
               </span>
               {noteCounts[folder.id] > 0 && (
