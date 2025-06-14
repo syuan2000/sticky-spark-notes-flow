@@ -16,7 +16,6 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
   const [customColors, setCustomColors] = useState([]);
   const [deletedDefaultColors, setDeletedDefaultColors] = useState([]);
   const [isPickingColor, setIsPickingColor] = useState(false);
-  const [editingColorIndex, setEditingColorIndex] = useState(null);
 
   const handleCustomColorAdd = (hex) => {
     if (customColors.length >= 5) return;
@@ -31,35 +30,6 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
     setCustomColors([...customColors, newColor]);
     onColorSelect(customClass);
     setIsPickingColor(false);
-  };
-
-  const handleColorCustomize = (colorIndex, hex, isDefault = false) => {
-    if (isDefault) {
-      // Convert default color to custom color with new hex
-      const originalColor = defaultColors[colorIndex];
-      const customClass = `bg-[${hex}]`;
-      const newColor = {
-        name: `custom-${Date.now()}`,
-        class: customClass,
-        hex: hex
-      };
-      
-      setCustomColors([...customColors, newColor]);
-      setDeletedDefaultColors([...deletedDefaultColors, originalColor.class]);
-      onColorSelect(customClass);
-    } else {
-      // Update existing custom color
-      const updatedCustomColors = [...customColors];
-      const customClass = `bg-[${hex}]`;
-      updatedCustomColors[colorIndex] = {
-        ...updatedCustomColors[colorIndex],
-        class: customClass,
-        hex: hex
-      };
-      setCustomColors(updatedCustomColors);
-      onColorSelect(customClass);
-    }
-    setEditingColorIndex(null);
   };
 
   const handleColorDelete = (colorToDelete, isDefault = false) => {
@@ -87,55 +57,26 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
 
   return (
     <div className="color-picker">
-      {allColors.map((color, index) => {
+      {allColors.map((color) => {
         const isDefault = defaultColors.some(dc => dc.class === color.class);
-        const actualIndex = isDefault ? defaultColors.findIndex(dc => dc.class === color.class) : index - availableDefaultColors.length;
-        const isEditing = editingColorIndex === `${isDefault ? 'default' : 'custom'}-${actualIndex}`;
+        const isCustom = customColors.some(c => c.class === color.class);
         
         return (
           <div key={color.name} className="color-button-container">
-            {isEditing ? (
-              <div className="color-picker-input">
-                <input
-                  type="color"
-                  defaultValue={color.hex}
-                  onChange={(e) => handleColorCustomize(actualIndex, e.target.value, isDefault)}
-                  className="color-input pixelated-background"
-                  autoFocus
-                />
-                <button
-                  onClick={() => setEditingColorIndex(null)}
-                  className="cancel-button"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={(e) => {
-                    if (e.detail === 1) {
-                      // Single click - select color
-                      onColorSelect(color.class);
-                    } else if (e.detail === 2) {
-                      // Double click - customize color
-                      setEditingColorIndex(`${isDefault ? 'default' : 'custom'}-${actualIndex}`);
-                    }
-                  }}
-                  className={`color-button ${selectedColor === color.class ? 'selected' : ''}`}
-                  style={{ backgroundColor: color.hex }}
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleColorDelete(color.class, isDefault);
-                  }}
-                  className="delete-button"
-                >
-                  <X className="w-2 h-2" />
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => onColorSelect(color.class)}
+              className={`color-button ${selectedColor === color.class ? 'selected' : ''} ${color.class}`}
+              style={color.hex ? { backgroundColor: color.hex } : {}}
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleColorDelete(color.class, isDefault);
+              }}
+              className="delete-button"
+            >
+              <X className="w-2 h-2" />
+            </button>
           </div>
         );
       })}
@@ -148,33 +89,31 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
         />
       ))}
       
-      {customColors.length < 5 && !isPickingColor && editingColorIndex === null && (
+      {customColors.length < 5 && (
         <div className="color-button-container">
-          <button
-            onClick={() => setIsPickingColor(true)}
-            className="add-color-button"
-          >
-            <Droplet className="w-4 h-4 text-gray-600" />
-          </button>
-        </div>
-      )}
-      
-      {isPickingColor && (
-        <div className="color-button-container">
-          <div className="color-picker-input">
-            <input
-              type="color"
-              onChange={(e) => handleCustomColorAdd(e.target.value)}
-              className="color-input pixelated-background"
-              autoFocus
-            />
+          {isPickingColor ? (
+            <div className="color-picker-input">
+              <input
+                type="color"
+                onChange={(e) => handleCustomColorAdd(e.target.value)}
+                className="color-input"
+                autoFocus
+              />
+              <button
+                onClick={() => setIsPickingColor(false)}
+                className="cancel-button"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => setIsPickingColor(false)}
-              className="cancel-button"
+              onClick={() => setIsPickingColor(true)}
+              className="add-color-button"
             >
-              <X className="w-3 h-3" />
+              <Droplet className="w-4 h-4 text-gray-600" />
             </button>
-          </div>
+          )}
         </div>
       )}
     </div>
