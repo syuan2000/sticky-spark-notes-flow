@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, GripVertical, CornerDownRight } from 'lucide-react';
+import { X, GripVertical } from 'lucide-react';
 import '../styles/StickyNote.css';
 
 const StickyNote = ({
@@ -38,7 +38,29 @@ const StickyNote = ({
     }
   };
 
-  const handleResizeStart = (e) => {
+  const handleHorizontalResizeStart = (e) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    
+    const startX = e.clientX;
+    const startWidth = size.width;
+
+    const handleMouseMove = (e) => {
+      const newWidth = Math.max(150, startWidth + (e.clientX - startX));
+      onResize(id, { width: newWidth, height: size.height });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleCornerResizeStart = (e) => {
     e.stopPropagation();
     setIsResizing(true);
     
@@ -69,11 +91,6 @@ const StickyNote = ({
     setIsDragging(true);
     onStartDrag?.();
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    const move = e2 => onMove(id, { x: e2.clientX-dragStart.x, y: e2.clientY-dragStart.y });
-    const up = () => { setIsDragging(false); onEndDrag?.(); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
-  
 
     const handleMouseMove = (e) => {
       onMove(id, {
@@ -84,6 +101,7 @@ const StickyNote = ({
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      onEndDrag?.();
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -145,12 +163,17 @@ const StickyNote = ({
         </div>
       )}
 
+      {/* Right edge for horizontal resize */}
       <div
-        onMouseDown={handleResizeStart}
-        className="resize-handle"
-      >
-        <CornerDownRight className="resize-icon" />
-      </div>
+        onMouseDown={handleHorizontalResizeStart}
+        className="horizontal-resize-edge"
+      />
+
+      {/* Bottom-right corner for full resize */}
+      <div
+        onMouseDown={handleCornerResizeStart}
+        className="corner-resize-area"
+      />
     </div>
   );
 };

@@ -71,25 +71,38 @@
   cursor: text;
 }
 
-.resize-handle {
+/* Horizontal resize edge */
+.horizontal-resize-edge {
   position: absolute;
-  bottom: 0.25rem;
-  right: 0.25rem;
-  width: 1rem;
-  height: 1rem;
-  cursor: nw-resize;
-  opacity: 0.5;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+  opacity: 0;
   transition: opacity 0.3s ease;
+  z-index: 10;
 }
 
-.resize-handle:hover {
+.sticky-note:hover .horizontal-resize-edge {
   opacity: 1;
 }
 
-.resize-icon {
-  width: 1rem;
-  height: 1rem;
-  color: #6b7280;
+/* Corner resize area */
+.corner-resize-area {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nw-resize;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 11;
+}
+
+.sticky-note:hover .corner-resize-area {
+  opacity: 1;
 }
 
 /* Color classes */

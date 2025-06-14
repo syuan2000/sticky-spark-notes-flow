@@ -46,6 +46,10 @@ const FolderSidebar = ({
     setEditingName('');
   };
 
+  const handleDoubleClick = (folderId, folderName) => {
+    handleFolderEdit(folderId, folderName);
+  };
+
   const handleDrop = (folderId) => {
     if (draggedNoteId) {
       onNoteDrop(draggedNoteId, folderId);
@@ -94,7 +98,7 @@ const FolderSidebar = ({
     return (
       <div key={folder.id} className="folder-item">
         <div
-          className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id ? 'drag-over' : ''}`}
+          className={`folder-row ${selectedFolder === folder.id ? 'selected' : ''} ${dragOverFolder === folder.id && draggedNoteId ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onFolderSelect(folder.id)}
           onMouseEnter={() => handleDragEnter(folder.id)}
@@ -137,7 +141,11 @@ const FolderSidebar = ({
             />
           ) : (
             <div className="folder-name-container">
-              <span className="folder-name" draggable={false}>
+              <span 
+                className="folder-name" 
+                draggable={false}
+                onDoubleClick={() => handleDoubleClick(folder.id, folder.name)}
+              >
                 {folder.name}
               </span>
               {noteCounts[folder.id] > 0 && (
