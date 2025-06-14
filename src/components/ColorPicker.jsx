@@ -56,67 +56,69 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
   const emptySlots = Math.max(0, totalSlots - allColors.length - (customColors.length < 5 ? 1 : 0));
 
   return (
-    <div className="color-picker">
-      {allColors.map((color) => {
-        const isDefault = defaultColors.some(dc => dc.class === color.class);
-        const isCustom = customColors.some(c => c.class === color.class);
-        
-        return (
-          <div key={color.name} className="color-button-container">
-            <button
-              onClick={() => onColorSelect(color.class)}
-              className={`color-button ${selectedColor === color.class ? 'selected' : ''} ${color.class}`}
-              style={color.hex ? { backgroundColor: color.hex } : {}}
-            />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleColorDelete(color.class, isDefault);
-              }}
-              className="delete-button"
-            >
-              <X className="w-2 h-2" />
-            </button>
-          </div>
-        );
-      })}
-      
-      {/* Placeholder slots */}
-      {Array.from({ length: emptySlots }).map((_, index) => (
-        <div
-          key={`placeholder-${index}`}
-          className="placeholder-slot"
-        />
-      ))}
-      
-      {customColors.length < 5 && (
-        <div className="color-button-container">
-          {isPickingColor ? (
-            <div className="color-picker-input">
-              <input
-                type="color"
-                onChange={(e) => handleCustomColorAdd(e.target.value)}
-                className="color-input"
-                autoFocus
+    <>
+      {isPickingColor && <div className="color-picker-overlay" onClick={() => setIsPickingColor(false)} />}
+      <div className="color-picker">
+        {allColors.map((color) => {
+          const isDefault = defaultColors.some(dc => dc.class === color.class);
+          
+          return (
+            <div key={color.name} className="color-button-container">
+              <button
+                onClick={() => onColorSelect(color.class)}
+                className={`color-button ${selectedColor === color.class ? 'selected' : ''} ${color.class}`}
+                style={color.hex ? { backgroundColor: color.hex } : {}}
               />
               <button
-                onClick={() => setIsPickingColor(false)}
-                className="cancel-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleColorDelete(color.class, isDefault);
+                }}
+                className="delete-button"
               >
-                <X className="w-3 h-3" />
+                <X className="w-2 h-2" />
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setIsPickingColor(true)}
-              className="add-color-button"
-            >
-              <Droplet className="w-4 h-4 text-gray-600" />
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+          );
+        })}
+        
+        {/* Placeholder slots */}
+        {Array.from({ length: emptySlots }).map((_, index) => (
+          <div
+            key={`placeholder-${index}`}
+            className="placeholder-slot"
+          />
+        ))}
+        
+        {customColors.length < 5 && (
+          <div className="color-button-container">
+            {isPickingColor ? (
+              <div className="color-picker-input">
+                <input
+                  type="color"
+                  onChange={(e) => handleCustomColorAdd(e.target.value)}
+                  className="color-input"
+                  autoFocus
+                />
+                <button
+                  onClick={() => setIsPickingColor(false)}
+                  className="cancel-button"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsPickingColor(true)}
+                className="add-color-button"
+              >
+                <Droplet className="w-4 h-4 text-gray-600" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
