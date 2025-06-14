@@ -59,14 +59,13 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
     <div className="color-picker">
       {allColors.map((color) => {
         const isDefault = defaultColors.some(dc => dc.class === color.class);
-        const isCustom = customColors.some(c => c.class === color.class);
         
         return (
           <div key={color.name} className="color-button-container">
             <button
               onClick={() => onColorSelect(color.class)}
-              className={`color-button ${selectedColor === color.class ? 'selected' : ''} ${color.class}`}
-              style={color.hex ? { backgroundColor: color.hex } : {}}
+              className={`color-button ${selectedColor === color.class ? 'selected' : ''}`}
+              style={{ backgroundColor: color.hex }}
             />
             <button
               onClick={(e) => {
@@ -96,7 +95,7 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
               <input
                 type="color"
                 onChange={(e) => handleCustomColorAdd(e.target.value)}
-                className="color-input"
+                className="color-input pixelated-background"
                 autoFocus
               />
               <button
