@@ -90,6 +90,7 @@ const StickyNotesBoard = () => {
     setDraggedNote(null);
   };
 
+
   const createFolder = (parentId) => {
     const newFolder = {
       id: Date.now().toString(),
@@ -181,6 +182,7 @@ const StickyNotesBoard = () => {
 
   const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
 
+
   return (
     <div className="sticky-notes-board">
       <div className="sidebar-container" style={{ width: currentSidebarWidth }}>
@@ -198,7 +200,7 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           noteCounts={noteCounts}
-          draggedNoteId={draggedNote?.id}
+          draggedNoteId={draggedNote}
         />
       </div>
 
@@ -256,18 +258,18 @@ const StickyNotesBoard = () => {
           )}
 
           {filteredNotes.map((note) => (
-            <StickyNote
+
+              <StickyNote
               key={note.id}
-              {...note}
-              onUpdate={updateNote}
-              onDelete={deleteNote}
-              onMove={moveNote}
-              onResize={resizeNote}
-              onStartDrag={() => {
-                setDraggedNote(note);
-              }}
-              onEndDrag={() => setDraggedNote(null)}
-            />
+                {...note}
+                onUpdate={updateNote}
+                onDelete={deleteNote}
+                onMove={moveNote}
+                onResize={resizeNote}
+                onStartDrag={()=> {
+                  setDraggedNote(note);}}
+                onEndDrag={()=> setDraggedNote(null)}
+              />
           ))}
         </div>
 

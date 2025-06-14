@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, GripVertical, CornerDownRight } from 'lucide-react';
 import '../styles/StickyNote.css';
@@ -20,7 +21,6 @@ const StickyNote = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [isHovering, setIsHovering] = useState(false);
 
   const handleDoubleClick = () => {
     setIsEditing(true);
@@ -69,6 +69,11 @@ const StickyNote = ({
     setIsDragging(true);
     onStartDrag?.();
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    const move = e2 => onMove(id, { x: e2.clientX-dragStart.x, y: e2.clientY-dragStart.y });
+    const up = () => { setIsDragging(false); onEndDrag?.(); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  
 
     const handleMouseMove = (e) => {
       onMove(id, {
@@ -79,7 +84,6 @@ const StickyNote = ({
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      onEndDrag?.();
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -109,8 +113,6 @@ const StickyNote = ({
       className={`sticky-note ${getBackgroundColor() ? '' : color} ${isDragging ? 'dragging' : ''}`}
       style={noteStyle}
       onMouseDown={!isResizing ? handleMouseDown : undefined}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
     >
       <div className="sticky-note-header">
         <GripVertical className="grip-icon" />
@@ -145,7 +147,7 @@ const StickyNote = ({
 
       <div
         onMouseDown={handleResizeStart}
-        className={`resize-handle ${isHovering ? 'visible' : ''}`}
+        className="resize-handle"
       >
         <CornerDownRight className="resize-icon" />
       </div>
