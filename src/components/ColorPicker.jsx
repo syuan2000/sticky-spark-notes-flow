@@ -71,17 +71,22 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
     }
   };
 
+  // Updated: handle color click and edit-in-place if selected
   const handleColorClick = (index) => {
     if (colors[index]) {
-      onColorSelect(colors[index].class);
+      if (selectedColor === colors[index].class) {
+        // If already selected, allow editing
+        setEditingColorIndex(index);
+      } else {
+        onColorSelect(colors[index].class);
+      }
     } else {
+      // Empty slot - start editing to add new color
       setEditingColorIndex(index);
     }
   };
 
-  const handleColorDoubleClick = (index) => {
-    setEditingColorIndex(index);
-  };
+  // No need for double click anymore
 
   return (
     <div className="color-picker">
@@ -99,10 +104,9 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
           ) : (
             <button
               onClick={() => handleColorClick(index)}
-              onDoubleClick={() => handleColorDoubleClick(index)}
               className={`color-button ${color && selectedColor === color.class ? 'selected' : ''} ${!color ? 'empty-slot' : ''}`}
               style={color ? { backgroundColor: color.hex } : {}}
-              title={color ? `${color.name} (Double-click to edit)` : 'Click to add color'}
+              title={color ? `${color.name} (Click again to edit)` : 'Click to add color'}
               tabIndex={0}
             >
               {!color && <Droplet className="w-4 h-4 text-gray-600" />}
@@ -129,3 +133,4 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
 };
 
 export default ColorPicker;
+
