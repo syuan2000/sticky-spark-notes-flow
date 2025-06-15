@@ -38,11 +38,30 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.color-button.custom-slot {
+.color-button.empty-slot {
   background: linear-gradient(45deg, #f3f4f6 25%, transparent 25%), 
               linear-gradient(-45deg, #f3f4f6 25%, transparent 25%), 
               linear-gradient(45deg, transparent 75%, #f3f4f6 75%), 
               linear-gradient(-45deg, transparent 75%, #f3f4f6 75%);
   background-size: 4px 4px;
   background-position: 0 0, 0 2px, 2px -2px, -2px 0px;
+}
+
+.color-input-inline {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid #374151;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-input-inline::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+
+.color-input-inline::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
 }

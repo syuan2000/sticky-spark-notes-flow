@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Droplet } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import '../styles/ColorPicker.css';
 
 const defaultColors = [
@@ -13,89 +12,87 @@ const defaultColors = [
 ];
 
 const ColorPicker = ({ selectedColor, onColorSelect }) => {
-  const [colors, setColors] = useState(defaultColors);
-  const [customColor, setCustomColor] = useState(null);
+  const [colors, setColors] = useState([...defaultColors, null]); // 6 slots total, last one starts empty
   const [editingColorIndex, setEditingColorIndex] = useState(null);
-  const [isCustomPickerOpen, setIsCustomPickerOpen] = useState(false);
 
   const handleColorEdit = (index, newHex) => {
     const newColors = [...colors];
-    newColors[index] = {
-      ...newColors[index],
-      hex: newHex,
-      class: `bg-[${newHex}]`
-    };
+    if (newColors[index]) {
+      // Editing existing color
+      newColors[index] = {
+        ...newColors[index],
+        hex: newHex,
+        class: `bg-[${newHex}]`
+      };
+    } else {
+      // Adding new color to empty slot
+      newColors[index] = {
+        name: 'custom',
+        class: `bg-[${newHex}]`,
+        hex: newHex
+      };
+    }
     setColors(newColors);
     onColorSelect(newColors[index].class);
     setEditingColorIndex(null);
   };
 
-  const handleCustomColorSelect = (hex) => {
-    const newCustomColor = {
-      name: 'custom',
-      class: `bg-[${hex}]`,
-      hex: hex
-    };
-    setCustomColor(newCustomColor);
-    onColorSelect(newCustomColor.class);
-    setIsCustomPickerOpen(false);
+  const handleColorDelete = (index) => {
+    const newColors = [...colors];
+    newColors[index] = null; // Set slot to empty
+    setColors(newColors);
+    
+    // If the deleted color was selected, deselect it
+    if (colors[index] && selectedColor === colors[index].class) {
+      onColorSelect('bg-yellow-200'); // Default to first color
+    }
+  };
+
+  const handleColorClick = (index) => {
+    if (colors[index]) {
+      onColorSelect(colors[index].class);
+    } else {
+      // Empty slot - start editing to add new color
+      setEditingColorIndex(index);
+    }
+  };
+
+  const handleColorDoubleClick = (index) => {
+    setEditingColorIndex(index);
   };
 
   return (
     <div className="color-picker">
       {colors.map((color, index) => (
-        <div key={color.name} className="color-button-container">
+        <div key={index} className="color-button-container">
           {editingColorIndex === index ? (
-            <Popover open={true} onOpenChange={() => setEditingColorIndex(null)}>
-              <PopoverTrigger asChild>
-                <button
-                  className="color-button"
-                  style={{ backgroundColor: color.hex }}
-                />
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-2" side="top">
-                <input
-                  type="color"
-                  value={color.hex}
-                  onChange={(e) => handleColorEdit(index, e.target.value)}
-                  className="w-8 h-8 border-none cursor-pointer"
-                  autoFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <input
+              type="color"
+              value={color?.hex || '#FEF08A'}
+              onChange={(e) => handleColorEdit(index, e.target.value)}
+              onBlur={() => setEditingColorIndex(null)}
+              className="color-input-inline"
+              autoFocus
+            />
           ) : (
             <button
-              onClick={() => onColorSelect(color.class)}
-              onDoubleClick={() => setEditingColorIndex(index)}
-              className={`color-button ${selectedColor === color.class ? 'selected' : ''}`}
-              style={{ backgroundColor: color.hex }}
-            />
+              onClick={() => handleColorClick(index)}
+              onDoubleClick={() => handleColorDoubleClick(index)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (color) {
+                  handleColorDelete(index);
+                }
+              }}
+              className={`color-button ${color && selectedColor === color.class ? 'selected' : ''} ${!color ? 'empty-slot' : ''}`}
+              style={color ? { backgroundColor: color.hex } : {}}
+              title={color ? `${color.name} (Double-click to edit, Right-click to delete)` : 'Click to add color'}
+            >
+              {!color && <Droplet className="w-4 h-4 text-gray-600" />}
+            </button>
           )}
         </div>
       ))}
-      
-      <div className="color-button-container">
-        <Popover open={isCustomPickerOpen} onOpenChange={setIsCustomPickerOpen}>
-          <PopoverTrigger asChild>
-            <button
-              onClick={() => setIsCustomPickerOpen(true)}
-              onDoubleClick={() => setIsCustomPickerOpen(true)}
-              className={`color-button ${customColor && selectedColor === customColor.class ? 'selected' : ''} ${!customColor ? 'custom-slot' : ''}`}
-              style={customColor ? { backgroundColor: customColor.hex } : {}}
-            >
-              {!customColor && <Droplet className="w-4 h-4 text-gray-600" />}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2" side="top">
-            <input
-              type="color"
-              onChange={(e) => handleCustomColorSelect(e.target.value)}
-              className="w-8 h-8 border-none cursor-pointer"
-              autoFocus
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
     </div>
   );
 };
