@@ -109,6 +109,13 @@ const StickyNotesBoard = () => {
     setDraggedNoteOrigin(null);
   };
 
+  // --- FIX: Add resizeNote function! ---
+  const resizeNote = (id, size) => {
+    setNotes(notes => notes.map(
+      note => note.id === id ? { ...note, size } : note
+    ));
+  };
+
   const createFolder = (parentId) => {
     const newFolder = {
       id: Date.now().toString(),
