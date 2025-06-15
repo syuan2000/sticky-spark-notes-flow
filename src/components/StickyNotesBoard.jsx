@@ -16,10 +16,7 @@ const StickyNotesBoard = () => {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // NEW: Track the currently dragged note and its original position
   const [draggedNote, setDraggedNote] = useState(null);
-  const [draggedNoteOrigin, setDraggedNoteOrigin] = useState(null); // {id, position}
 
   const getNoteCountForFolder = (folderId) => {
     return notes.filter(note => note.folderId === folderId).length;
@@ -67,53 +64,27 @@ const StickyNotesBoard = () => {
     setNotes(notes.filter(note => note.id !== id));
   };
 
-  // Move note during active dragging, do NOT apply sidebar constraint (just update)
   const moveNote = (id, pos) => {
+    const margin = sidebarCollapsed ? 48 : sidebarWidth;
     setNotes(prev => prev.map(n =>
       n.id === id
-        ? { ...n, position: { x: pos.x, y: pos.y } }
+        ? { ...n, position: { x: Math.max(pos.x, margin), y: Math.max(pos.y, 0) } }
         : n)
     );
   };
 
-  // On drag start: capture the note and its original position.
-  const handleStartDrag = (note) => {
-    setDraggedNote(note);
-    setDraggedNoteOrigin({ id: note.id, position: { ...note.position } });
-  };
-
-  // On drag end: if not dropped into folder, snap back to original position constrained to left margin
-  const handleEndDrag = (droppedInSidebar = false) => {
-    if (draggedNote && draggedNoteOrigin) {
-      // Only snap back if drop did NOT result in a folder drop
-      if (droppedInSidebar) {
-        // Move back to original position, but ensure not overlapping sidebar
-        const margin = sidebarCollapsed ? 48 : sidebarWidth;
-        const original = draggedNoteOrigin.position;
-        const newX = Math.max(original.x, margin);
-        moveNote(draggedNote.id, { x: newX, y: original.y });
-      }
-    }
-    setDraggedNote(null);
-    setDraggedNoteOrigin(null);
-  };
-
-  // On successful drop into a folder: move the note into folder (don't change position)
-  const handleNoteDrop = (noteId, folderId) => {
-    setNotes(notes.map(note =>
-      note.id === noteId ?
-        { ...note, folderId: folderId || undefined }
-        : note
-    ));
-    setDraggedNote(null);
-    setDraggedNoteOrigin(null);
-  };
-
-  // --- FIX: Add resizeNote function! ---
   const resizeNote = (id, size) => {
-    setNotes(notes => notes.map(
-      note => note.id === id ? { ...note, size } : note
+    setNotes(notes.map(note => 
+      note.id === id ? { ...note, size } : note
     ));
+  };
+
+  const handleNoteDrop = (noteId, folderId) => {
+    setNotes(notes.map(note => 
+      note.id === noteId ? 
+      { ...note, folderId: folderId || undefined } : note
+    ));
+    setDraggedNote(null);
   };
 
   const createFolder = (parentId) => {
@@ -222,11 +193,7 @@ const StickyNotesBoard = () => {
           onFolderToggle={toggleFolder}
           onWidthChange={setSidebarWidth}
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          onNoteDrop={(id, folderId) => {
-            // Called on successful folder drop
-            handleNoteDrop(id, folderId);
-            // On folder drop, this is not a sidebar "miss" so no snap-back needed
-          }}
+          onNoteDrop={handleNoteDrop}
           noteCounts={noteCounts}
           draggedNoteId={draggedNote?.id}
         />
@@ -235,19 +202,6 @@ const StickyNotesBoard = () => {
       <div 
         className="main-content"
         style={{ marginLeft: currentSidebarWidth }}
-        onMouseUp={e => {
-          // Drag ends on board (not folder/sidebar), so snap the note back
-          if (draggedNote) {
-            // Sidebar DOM region is from 0 to currentSidebarWidth
-            if (e.clientX < currentSidebarWidth) {
-              // Mouse released over sidebar, treat as "not dropped to folder"
-              handleEndDrag(true);
-            } else {
-              // Regular drop area, do not snap back, just finish drag.
-              handleEndDrag(false);
-            }
-          }
-        }}
       >
         <div 
           className="header" 
@@ -306,8 +260,8 @@ const StickyNotesBoard = () => {
               onDelete={deleteNote}
               onMove={moveNote}
               onResize={resizeNote}
-              onStartDrag={() => handleStartDrag(note)}
-              onEndDrag={() => handleEndDrag()}
+              onStartDrag={() => setDraggedNote(note)}
+              onEndDrag={() => setDraggedNote(null)}
             />
           ))}
         </div>

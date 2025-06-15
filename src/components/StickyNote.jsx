@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, GripVertical } from 'lucide-react';
 import '../styles/StickyNote.css';
@@ -98,7 +99,7 @@ const StickyNote = ({
       });
     };
 
-    const handleMouseUp = (event) => {
+    const handleMouseUp = () => {
       setIsDragging(false);
       onEndDrag?.();
       document.removeEventListener('mousemove', handleMouseMove);
