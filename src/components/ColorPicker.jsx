@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Droplet, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import '../styles/ColorPicker.css';
 
 const defaultColors = [
@@ -13,109 +14,108 @@ const defaultColors = [
 ];
 
 const ColorPicker = ({ selectedColor, onColorSelect }) => {
-  const [customColors, setCustomColors] = useState([]);
-  const [deletedDefaultColors, setDeletedDefaultColors] = useState([]);
-  const [isPickingColor, setIsPickingColor] = useState(false);
+  const [colors, setColors] = useState(defaultColors);
+  const [customColor, setCustomColor] = useState(null);
+  const [editingColorIndex, setEditingColorIndex] = useState(null);
+  const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
 
-  const handleCustomColorAdd = (hex) => {
-    if (customColors.length >= 5) return;
-    
-    const customClass = `bg-[${hex}]`;
-    const newColor = {
-      name: `custom-${Date.now()}`,
-      class: customClass,
-      hex: hex
+  const handleColorEdit = (index, newHex) => {
+    const newColors = [...colors]; 
+    const newClass = `bg-[${newHex}]`;
+    newColors[index] = {
+      ...newColors[index],
+      hex: newHex,
+      class: newClass
     };
-    
-    setCustomColors([...customColors, newColor]);
+    setColors(newColors);
+    onColorSelect(newClass);
+    setEditingColorIndex(null);
+  };
+
+  const handleCustomColorSelect = (hex) => {
+    const customClass = `bg-[${hex}]`;
+    setCustomColor({ hex, class: customClass });
     onColorSelect(customClass);
-    setIsPickingColor(false);
+    setIsCustomColorOpen(false);
   };
 
-  const handleColorDelete = (colorToDelete, isDefault = false) => {
-    if (isDefault) {
-      setDeletedDefaultColors([...deletedDefaultColors, colorToDelete]);
-    } else {
-      setCustomColors(customColors.filter(color => color.class !== colorToDelete));
-    }
-    
-    if (selectedColor === colorToDelete) {
-      const availableColors = [
-        ...defaultColors.filter(c => !deletedDefaultColors.includes(c.class)),
-        ...customColors.filter(c => c.class !== colorToDelete)
-      ];
-      if (availableColors.length > 0) {
-        onColorSelect(availableColors[0].class);
-      }
-    }
+  const handleColorClick = (color) => {
+    onColorSelect(color.class);
   };
 
-  const availableDefaultColors = defaultColors.filter(color => !deletedDefaultColors.includes(color.class));
-  const allColors = [...availableDefaultColors, ...customColors];
-  const totalSlots = 6;
-  const emptySlots = Math.max(0, totalSlots - allColors.length - (customColors.length < 5 ? 1 : 0));
+  const handleColorDoubleClick = (index) => {
+    setEditingColorIndex(index);
+  };
 
   return (
     <div className="color-picker">
-      {allColors.map((color) => {
-        const isDefault = defaultColors.some(dc => dc.class === color.class);
-        const isCustom = customColors.some(c => c.class === color.class);
-        
-        return (
-          <div key={color.name} className="color-button-container">
+      {colors.map((color, index) => (
+        <div key={color.name} className="color-button-container">
+          {editingColorIndex === index ? (
+            <Popover open={true} onOpenChange={() => setEditingColorIndex(null)}>
+              <PopoverTrigger asChild>
+                <button
+                  className={`color-button ${selectedColor === color.class ? 'selected' : ''}`}
+                  style={{ backgroundColor: color.hex }}
+                />
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" side="top">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    defaultValue={color.hex}
+                    onChange={(e) => handleColorEdit(index, e.target.value)}
+                    className="color-input"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => setEditingColorIndex(null)}
+                    className="cancel-button"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
             <button
-              onClick={() => onColorSelect(color.class)}
-              className={`color-button ${selectedColor === color.class ? 'selected' : ''} ${color.class}`}
-              style={color.hex ? { backgroundColor: color.hex } : {}}
+              onClick={() => handleColorClick(color)}
+              onDoubleClick={() => handleColorDoubleClick(index)}
+              className={`color-button ${selectedColor === color.class ? 'selected' : ''}`}
+              style={{ backgroundColor: color.hex }}
             />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleColorDelete(color.class, isDefault);
-              }}
-              className="delete-button"
-            >
-              <X className="w-2 h-2" />
-            </button>
-          </div>
-        );
-      })}
-      
-      {/* Placeholder slots */}
-      {Array.from({ length: emptySlots }).map((_, index) => (
-        <div
-          key={`placeholder-${index}`}
-          className="placeholder-slot"
-        />
+          )}
+        </div>
       ))}
-      
-      {customColors.length < 5 && (
-        <div className="color-button-container">
-          {isPickingColor ? (
-            <div className="color-picker-input">
+
+      <div className="color-button-container">
+        <Popover open={isCustomColorOpen} onOpenChange={setIsCustomColorOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className={`color-button custom-color-button ${selectedColor === customColor?.class ? 'selected' : ''}`}
+              style={customColor ? { backgroundColor: customColor.hex } : {}}
+            >
+              {!customColor && <Droplet className="w-4 h-4 text-gray-600" />}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" side="top">
+            <div className="flex items-center gap-2">
               <input
                 type="color"
-                onChange={(e) => handleCustomColorAdd(e.target.value)}
+                onChange={(e) => handleCustomColorSelect(e.target.value)}
                 className="color-input"
                 autoFocus
               />
               <button
-                onClick={() => setIsPickingColor(false)}
+                onClick={() => setIsCustomColorOpen(false)}
                 className="cancel-button"
               >
                 <X className="w-3 h-3" />
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setIsPickingColor(true)}
-              className="add-color-button"
-            >
-              <Droplet className="w-4 h-4 text-gray-600" />
-            </button>
-          )}
-        </div>
-      )}
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 };
