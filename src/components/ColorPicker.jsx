@@ -13,107 +13,111 @@ const defaultColors = [
 ];
 
 const ColorPicker = ({ selectedColor, onColorSelect }) => {
-  const [customColors, setCustomColors] = useState([]);
-  const [deletedDefaultColors, setDeletedDefaultColors] = useState([]);
-  const [isPickingColor, setIsPickingColor] = useState(false);
+  const [customColor, setCustomColor] = useState(null);
+  const [editingColorIndex, setEditingColorIndex] = useState(null);
+  const [colors, setColors] = useState(defaultColors);
 
-  const handleCustomColorAdd = (hex) => {
-    if (customColors.length >= 5) return;
-    
-    const customClass = `bg-[${hex}]`;
-    const newColor = {
-      name: `custom-${Date.now()}`,
-      class: customClass,
-      hex: hex
-    };
-    
-    setCustomColors([...customColors, newColor]);
-    onColorSelect(customClass);
-    setIsPickingColor(false);
+  const handleColorCustomize = (colorIndex, isCustom = false) => {
+    setEditingColorIndex(isCustom ? 'custom' : colorIndex);
   };
 
-  const handleColorDelete = (colorToDelete, isDefault = false) => {
-    if (isDefault) {
-      setDeletedDefaultColors([...deletedDefaultColors, colorToDelete]);
-    } else {
-      setCustomColors(customColors.filter(color => color.class !== colorToDelete));
+  const handleColorChange = (newHex) => {
+    if (editingColorIndex === 'custom') {
+      const newCustomColor = {
+        name: `custom-${Date.now()}`,
+        class: `bg-[${newHex}]`,
+        hex: newHex
+      };
+      setCustomColor(newCustomColor);
+      onColorSelect(newCustomColor.class);
+    } else if (editingColorIndex !== null) {
+      const updatedColors = [...colors];
+      updatedColors[editingColorIndex] = {
+        ...updatedColors[editingColorIndex],
+        hex: newHex,
+        class: `bg-[${newHex}]`
+      };
+      setColors(updatedColors);
+      onColorSelect(updatedColors[editingColorIndex].class);
     }
-    
-    if (selectedColor === colorToDelete) {
-      const availableColors = [
-        ...defaultColors.filter(c => !deletedDefaultColors.includes(c.class)),
-        ...customColors.filter(c => c.class !== colorToDelete)
-      ];
-      if (availableColors.length > 0) {
-        onColorSelect(availableColors[0].class);
-      }
-    }
+    setEditingColorIndex(null);
   };
 
-  const availableDefaultColors = defaultColors.filter(color => !deletedDefaultColors.includes(color.class));
-  const allColors = [...availableDefaultColors, ...customColors];
-  const totalSlots = 6;
-  const emptySlots = Math.max(0, totalSlots - allColors.length - (customColors.length < 5 ? 1 : 0));
+  const handleColorSelect = (colorClass) => {
+    onColorSelect(colorClass);
+  };
+
+  const allColors = [...colors];
+  if (customColor) {
+    allColors.push(customColor);
+  }
 
   return (
     <div className="color-picker">
-      {allColors.map((color) => {
-        const isDefault = defaultColors.some(dc => dc.class === color.class);
-        const isCustom = customColors.some(c => c.class === color.class);
-        
-        return (
-          <div key={color.name} className="color-button-container">
-            <button
-              onClick={() => onColorSelect(color.class)}
-              className={`color-button ${selectedColor === color.class ? 'selected' : ''} ${color.class}`}
-              style={color.hex ? { backgroundColor: color.hex } : {}}
-            />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleColorDelete(color.class, isDefault);
-              }}
-              className="delete-button"
-            >
-              <X className="w-2 h-2" />
-            </button>
-          </div>
-        );
-      })}
-      
-      {/* Placeholder slots */}
-      {Array.from({ length: emptySlots }).map((_, index) => (
-        <div
-          key={`placeholder-${index}`}
-          className="placeholder-slot"
-        />
+      {colors.map((color, index) => (
+        <div key={color.name} className="color-button-container">
+          <button
+            onClick={() => handleColorSelect(color.class)}
+            onDoubleClick={() => handleColorCustomize(index)}
+            className={`color-button ${selectedColor === color.class ? 'selected' : ''}`}
+            style={{ backgroundColor: color.hex }}
+            title="Click to select, double-click to customize"
+          />
+        </div>
       ))}
       
-      {customColors.length < 5 && (
-        <div className="color-button-container">
-          {isPickingColor ? (
-            <div className="color-picker-input">
-              <input
-                type="color"
-                onChange={(e) => handleCustomColorAdd(e.target.value)}
-                className="color-input"
-                autoFocus
-              />
-              <button
-                onClick={() => setIsPickingColor(false)}
-                className="cancel-button"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ) : (
+      <div className="color-button-container">
+        {editingColorIndex === 'custom' ? (
+          <div className="color-picker-input">
+            <input
+              type="color"
+              onChange={(e) => handleColorChange(e.target.value)}
+              className="color-input"
+              autoFocus
+            />
             <button
-              onClick={() => setIsPickingColor(true)}
-              className="add-color-button"
+              onClick={() => setEditingColorIndex(null)}
+              className="cancel-button"
             >
-              <Droplet className="w-4 h-4 text-gray-600" />
+              <X className="w-3 h-3" />
             </button>
-          )}
+          </div>
+        ) : customColor ? (
+          <button
+            onClick={() => handleColorSelect(customColor.class)}
+            onDoubleClick={() => handleColorCustomize(null, true)}
+            className={`color-button ${selectedColor === customColor.class ? 'selected' : ''}`}
+            style={{ backgroundColor: customColor.hex }}
+            title="Click to select, double-click to customize"
+          />
+        ) : (
+          <button
+            onClick={() => handleColorCustomize(null, true)}
+            className="add-color-button"
+            title="Click to add custom color"
+          >
+            <Droplet className="w-4 h-4 text-gray-600" />
+          </button>
+        )}
+      </div>
+
+      {editingColorIndex !== null && editingColorIndex !== 'custom' && (
+        <div className="color-picker-overlay">
+          <div className="color-picker-input">
+            <input
+              type="color"
+              defaultValue={colors[editingColorIndex].hex}
+              onChange={(e) => handleColorChange(e.target.value)}
+              className="color-input"
+              autoFocus
+            />
+            <button
+              onClick={() => setEditingColorIndex(null)}
+              className="cancel-button"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       )}
     </div>
