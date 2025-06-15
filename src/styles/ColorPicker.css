@@ -26,6 +26,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  background: none;
 }
 
 .color-button:hover {
@@ -60,8 +62,34 @@
   padding: 0;
   border-radius: 50%;
 }
-
 .color-input-inline::-webkit-color-swatch {
   border: none;
   border-radius: 50%;
 }
+
+.color-delete-btn {
+  display: none;
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: white;
+  border-radius: 50%;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.color-delete-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.color-button:hover .color-delete-btn {
+  display: flex;
+}
+

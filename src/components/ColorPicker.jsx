@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Droplet } from 'lucide-react';
+import { Droplet, X } from 'lucide-react';
 import '../styles/ColorPicker.css';
 
 const defaultColors = [
@@ -41,7 +41,7 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
     const newColors = [...colors];
     newColors[index] = null; // Set slot to empty
     setColors(newColors);
-    
+
     // If the deleted color was selected, deselect it
     if (colors[index] && selectedColor === colors[index].class) {
       onColorSelect('bg-yellow-200'); // Default to first color
@@ -64,7 +64,10 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
   return (
     <div className="color-picker">
       {colors.map((color, index) => (
-        <div key={index} className="color-button-container">
+        <div
+          key={index}
+          className="color-button-container"
+        >
           {editingColorIndex === index ? (
             <input
               type="color"
@@ -78,17 +81,25 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
             <button
               onClick={() => handleColorClick(index)}
               onDoubleClick={() => handleColorDoubleClick(index)}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                if (color) {
-                  handleColorDelete(index);
-                }
-              }}
               className={`color-button ${color && selectedColor === color.class ? 'selected' : ''} ${!color ? 'empty-slot' : ''}`}
               style={color ? { backgroundColor: color.hex } : {}}
-              title={color ? `${color.name} (Double-click to edit, Right-click to delete)` : 'Click to add color'}
+              title={color ? `${color.name} (Double-click to edit)` : 'Click to add color'}
             >
               {!color && <Droplet className="w-4 h-4 text-gray-600" />}
+              {/* Delete button: appear only on hover over non-empty slot */}
+              {color && (
+                <span
+                  className="color-delete-btn"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleColorDelete(index);
+                  }}
+                  tabIndex={-1}
+                  title="Delete color"
+                >
+                  <X size={14} />
+                </span>
+              )}
             </button>
           )}
         </div>
