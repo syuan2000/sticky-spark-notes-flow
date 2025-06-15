@@ -50,7 +50,16 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
     }
     newColors = normalizeColors(newColors);
     setColors(newColors);
-    onColorSelect(newColors[index].class);
+
+    // SAFELY FIND the exact updated color after normalization, in case the order/slot changed
+    const found = newColors.find((c) => c && c.hex === newHex);
+    if (found) {
+      onColorSelect(found.class);
+    } else {
+      // fallback: select the first valid color
+      const first = newColors.find((c) => c !== null);
+      onColorSelect(first ? first.class : 'bg-yellow-200');
+    }
     setEditingColorIndex(null);
   };
 
@@ -133,4 +142,3 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
 };
 
 export default ColorPicker;
-
