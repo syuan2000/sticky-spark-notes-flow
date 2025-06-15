@@ -330,6 +330,7 @@ const StickyNotesBoard = () => {
           onNoteDrop={handleNoteDrop}
           noteCounts={noteCounts}
           draggedNoteId={draggedNote?.id}
+          notes={notes}
         />
       </div>
 

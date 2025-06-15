@@ -151,6 +151,7 @@
   transition: all 0.3s ease;
   color: #374151;
   min-width: 0;
+  justify-content: space-between;
 }
 
 .folder-row:hover {
@@ -203,6 +204,7 @@
 .folder-name-container {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex: 1;
   gap: 0.5rem;
   min-width: 0;
@@ -336,4 +338,29 @@
 
 .resize-handle:hover::before {
   opacity: 1;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin: 8px 12px 0 12px;
+  background-color: white;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  margin-left: 8px;
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  background: transparent;
+}
+
+.search-icon {
+  color: #888;
+  flex-shrink: 0;
 }

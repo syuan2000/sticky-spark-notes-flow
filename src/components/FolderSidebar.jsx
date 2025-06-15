@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   ChevronDown,
@@ -10,6 +9,7 @@ import {
   MoreHorizontal,
   Trash2,
   ChevronsLeft,
+  Search,
 } from 'lucide-react';
 import '../styles/FolderSidebar.css';
 
@@ -30,11 +30,13 @@ const FolderSidebar = ({
   onNoteDrop,
   noteCounts,
   draggedNoteId,
+  notes
 }) => {
   const [editingItem, setEditingItem] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [dragOverItem, setDragOverItem] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleItemEdit = (itemId, currentName) => {
     setEditingItem(itemId);
@@ -53,9 +55,11 @@ const FolderSidebar = ({
     handleItemEdit(itemId, itemName);
   };
 
-  const handleDrop = (itemId) => {
+  const handleDrop = (itemId, isFolder) => {
     if (draggedNoteId) {
-      onNoteDrop(draggedNoteId, itemId);
+      if (!isFolder) {
+        onNoteDrop(draggedNoteId, itemId);
+      }
     }
     setDragOverItem(null);
   };
@@ -95,13 +99,51 @@ const FolderSidebar = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const filterItems = (items) => {
+    if (!searchTerm.trim()) return items;
+  
+    const lowerSearch = searchTerm.toLowerCase();
+  
+    return items.reduce((acc, item) => {
+      const isFolder = item.type === 'folder';
+      const isBoard = item.type === 'board';
+      let match = false;
+  
+      if (item.name.toLowerCase().includes(lowerSearch)) {
+        match = true;
+      }
+      if (isBoard && notes) {
+        const relatedNotes = notes.filter(note => note.boardId === item.id);
+        const noteMatch = relatedNotes.some(note =>
+          note.content.toLowerCase().includes(lowerSearch)
+        );
+        if (noteMatch) {
+          match = true;
+        }
+      }
+  
+      if (isFolder && item.children && item.children.length > 0) {
+        const filteredChildren = filterItems(item.children);
+        if (filteredChildren.length > 0) {
+          acc.push({ ...item, children: filteredChildren, isExpanded: true });
+          return acc;
+        }
+      }
+      if (match) {
+        acc.push(item);
+      }
+      return acc;
+    }, []);
+  };
+  
+
   const renderItem = (item, level = 0) => {
     const hasChildren = item.children && item.children.length > 0;
     const isFolder = item.type === 'folder';
     const isBoard = item.type === 'board';
     const isSelected = (isFolder && selectedFolder === item.id) || (isBoard && selectedBoard === item.id);
     const isDragOver = dragOverItem === item.id && draggedNoteId;
-    
+
     return (
       <div key={item.id} className="folder-item">
         <div
@@ -110,7 +152,7 @@ const FolderSidebar = ({
           onClick={() => onItemSelect(item.id)}
           onMouseEnter={() => handleDragEnter(item.id)}
           onMouseLeave={() => handleDragLeave(item.id)}
-          onMouseUp={() => handleDrop(item.id)}
+          onMouseUp={() => handleDrop(item.id, isFolder)}
         >
           <button
             onClick={(e) => {
@@ -128,13 +170,7 @@ const FolderSidebar = ({
           </button>
 
           {isFolder ? (
-            <>
-              {item.isExpanded && hasChildren ? (
-                <FolderOpen className="folder-icon expanded" />
-              ) : (
-                <Folder className="folder-icon collapsed" />
-              )}
-            </>
+            item.isExpanded && hasChildren ? <FolderOpen className="folder-icon expanded" /> : <Folder className="folder-icon collapsed" />
           ) : (
             <FileText className="folder-icon collapsed" />
           )}
@@ -153,17 +189,13 @@ const FolderSidebar = ({
               autoFocus
             />
           ) : (
-            <div className="folder-name-container">
-              <span 
-                className="folder-name" 
-                draggable={false}
-                onDoubleClick={() => handleDoubleClick(item.id, item.name)}
-              >
+            <div className="folder-name-container" onDoubleClick={() => handleDoubleClick(item.id, item.name)}>
+              <span className="folder-name" draggable={false} >
                 {item.name}
               </span>
-              {isBoard && noteCounts[item.id] > 0 && (
+              {isFolder && item.children?.length > 0 && (
                 <span className="note-count-badge">
-                  {noteCounts[item.id]}
+                  {item.children.length}
                 </span>
               )}
             </div>
@@ -171,36 +203,15 @@ const FolderSidebar = ({
 
           <div className="folder-actions">
             {isFolder && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onBoardCreate(item.id);
-                }}
-                className="folder-action-button"
-                title="Add Board"
-              >
+              <button onClick={(e) => { e.stopPropagation(); onBoardCreate(item.id); }} className="folder-action-button" title="Add Board">
                 <Plus className="folder-action-icon" />
               </button>
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleItemEdit(item.id, item.name);
-              }}
-              className="folder-action-button"
-              title="Rename"
-            >
+            <button onClick={(e) => { e.stopPropagation(); handleItemEdit(item.id, item.name); }} className="folder-action-button" title="Rename">
               <MoreHorizontal className="folder-action-icon" />
             </button>
             {item.id !== 'all-boards' && item.id !== 'quick-notes' && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onItemDelete(item.id);
-                }}
-                className="folder-action-button delete"
-                title="Delete"
-              >
+              <button onClick={(e) => { e.stopPropagation(); onItemDelete(item.id); }} className="folder-action-button delete" title="Delete">
                 <Trash2 className="folder-action-icon" />
               </button>
             )}
@@ -227,20 +238,13 @@ const FolderSidebar = ({
   }
 
   return (
-    <div
-      className="folder-sidebar"
-      style={{ width }}
-    >
+    <div className="folder-sidebar" style={{ width }}>
       <div className="sidebar-content">
         <div className="sidebar-header">
           <div className="header-row">
             <h2 className="sidebar-title">Boards</h2>
             <div className="header-buttons">
-              <button
-                onClick={() => onFolderCreate()}
-                className="header-button"
-                title="New Folder"
-              >
+              <button onClick={() => onFolderCreate()} className="header-button" title="New Folder">
                 <Plus className="header-icon" />
               </button>
               <button onClick={onCollapse} className="header-button">
@@ -248,17 +252,25 @@ const FolderSidebar = ({
               </button>
             </div>
           </div>
+          <div className="search-bar">
+          <Search size={16} className="search-icon" />
+             <input
+              type="text"
+              placeholder="Search boards..."
+              className="search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            
+          </div>
         </div>
 
         <div className="folders-container">
-          {folders.map(folder => renderItem(folder))}
+          {filterItems(folders).map(folder => renderItem(folder))}
         </div>
       </div>
 
-      <div
-        onMouseDown={handleResizeStart}
-        className={`resize-handle ${isResizing ? 'resizing' : ''}`}
-      />
+      <div onMouseDown={handleResizeStart} className={`resize-handle ${isResizing ? 'resizing' : ''}`} />
     </div>
   );
 };
