@@ -11,12 +11,28 @@ const defaultColors = [
   { name: 'purple', class: 'bg-purple-200', hex: '#E9D5FF' },
 ];
 
+const SLOT_COUNT = 6;
+
 const ColorPicker = ({ selectedColor, onColorSelect }) => {
-  const [colors, setColors] = useState([...defaultColors, null]); // 6 slots total, last one starts empty
+  // Fill out to 6 slots total, extra slot as empty initially
+  const [colors, setColors] = useState([
+    ...defaultColors,
+    null,
+  ]);
+
   const [editingColorIndex, setEditingColorIndex] = useState(null);
 
+  // Always fill up to 6 slots with all nulls at the end
+  const normalizeColors = (colorsArr) => {
+    const nonNulls = colorsArr.filter(Boolean);
+    while (nonNulls.length < SLOT_COUNT) {
+      nonNulls.push(null);
+    }
+    return nonNulls.slice(0, SLOT_COUNT);
+  };
+
   const handleColorEdit = (index, newHex) => {
-    const newColors = [...colors];
+    let newColors = [...colors];
     if (newColors[index]) {
       // Editing existing color
       newColors[index] = {
@@ -32,19 +48,26 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
         hex: newHex
       };
     }
+    newColors = normalizeColors(newColors);
     setColors(newColors);
     onColorSelect(newColors[index].class);
     setEditingColorIndex(null);
   };
 
   const handleColorDelete = (index) => {
-    const newColors = [...colors];
-    newColors[index] = null; // Set slot to empty
+    let newColors = [...colors];
+    newColors[index] = null;
+    newColors = normalizeColors(newColors); // All nulls (empty slots) shift right
+
     setColors(newColors);
 
-    // If the deleted color was selected, deselect it
-    if (colors[index] && selectedColor === colors[index].class) {
-      onColorSelect('bg-yellow-200'); // Default to first color
+    // If the deleted color was selected, reset to first available one or default
+    if (
+      colors[index] &&
+      selectedColor === colors[index].class
+    ) {
+      const first = newColors.find((c) => c !== null);
+      onColorSelect(first ? first.class : 'bg-yellow-200');
     }
   };
 
@@ -52,7 +75,6 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
     if (colors[index]) {
       onColorSelect(colors[index].class);
     } else {
-      // Empty slot - start editing to add new color
       setEditingColorIndex(index);
     }
   };
@@ -64,14 +86,11 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
   return (
     <div className="color-picker">
       {colors.map((color, index) => (
-        <div
-          key={index}
-          className="color-button-container"
-        >
+        <div key={index} className="color-button-container">
           {editingColorIndex === index ? (
             <input
               type="color"
-              value={color?.hex || '#FEF08A'}
+              value={color?.hex || ''}
               onChange={(e) => handleColorEdit(index, e.target.value)}
               onBlur={() => setEditingColorIndex(null)}
               className="color-input-inline"
@@ -84,6 +103,7 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
               className={`color-button ${color && selectedColor === color.class ? 'selected' : ''} ${!color ? 'empty-slot' : ''}`}
               style={color ? { backgroundColor: color.hex } : {}}
               title={color ? `${color.name} (Double-click to edit)` : 'Click to add color'}
+              tabIndex={0}
             >
               {!color && <Droplet className="w-4 h-4 text-gray-600" />}
               {/* Delete button: appear only on hover over non-empty slot */}
