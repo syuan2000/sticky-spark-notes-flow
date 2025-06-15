@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Droplet, X } from 'lucide-react';
+import { X, ColorWheel } from 'lucide-react';
 import '../styles/ColorPicker.css';
 
 const defaultColors = [
@@ -11,132 +11,181 @@ const defaultColors = [
   { name: 'purple', class: 'bg-purple-200', hex: '#E9D5FF' },
 ];
 
-const SLOT_COUNT = 6;
+const MAX_SLOT = 6; // 5 fixed + 1 custom
 
 const ColorPicker = ({ selectedColor, onColorSelect }) => {
-  // Fill out to 6 slots total, extra slot as empty initially
-  const [colors, setColors] = useState([
-    ...defaultColors,
-    null,
-  ]);
-
+  // State: regular (predefined) colors
+  const [regularColors, setRegularColors] = useState([...defaultColors]);
+  // State: single custom slot. Null if unset, else { name: 'custom', ... }
+  const [customColor, setCustomColor] = useState(null);
+  // State: tracking editing for regular/custom, use 'custom' for custom slot
   const [editingColorIndex, setEditingColorIndex] = useState(null);
 
-  // Always fill up to 6 slots with all nulls at the end
-  const normalizeColors = (colorsArr) => {
-    const nonNulls = colorsArr.filter(Boolean);
-    while (nonNulls.length < SLOT_COUNT) {
-      nonNulls.push(null);
-    }
-    return nonNulls.slice(0, SLOT_COUNT);
-  };
-
+  // Handler for editing regular color slot
   const handleColorEdit = (index, newHex) => {
-    let newColors = [...colors];
-    if (newColors[index]) {
-      // Editing existing color
-      newColors[index] = {
-        ...newColors[index],
-        hex: newHex,
-        class: `bg-[${newHex}]`
-      };
-    } else {
-      // Adding new color to empty slot
-      newColors[index] = {
-        name: 'custom',
-        class: `bg-[${newHex}]`,
-        hex: newHex
-      };
-    }
-    newColors = normalizeColors(newColors);
-    setColors(newColors);
-
-    // SAFELY FIND the exact updated color after normalization, in case the order/slot changed
-    const found = newColors.find((c) => c && c.hex === newHex);
-    if (found) {
-      onColorSelect(found.class);
-    } else {
-      // fallback: select the first valid color
-      const first = newColors.find((c) => c !== null);
-      onColorSelect(first ? first.class : 'bg-yellow-200');
-    }
+    const updatedColors = [...regularColors];
+    updatedColors[index] = {
+      ...updatedColors[index],
+      hex: newHex,
+      class: `bg-[${newHex}]`,
+    };
+    setRegularColors(updatedColors);
+    onColorSelect(updatedColors[index].class);
     setEditingColorIndex(null);
   };
 
+  // Handler for deleting regular color slot
   const handleColorDelete = (index) => {
-    let newColors = [...colors];
-    newColors[index] = null;
-    newColors = normalizeColors(newColors); // All nulls (empty slots) shift right
+    const colorsCopy = [...regularColors];
+    const deleted = colorsCopy.splice(index, 1);
+    setRegularColors(colorsCopy);
 
-    setColors(newColors);
-
-    // If the deleted color was selected, reset to first available one or default
+    // If deleted color was selected, select next slot if present,
+    // customColor if selected, or fallback to first.
     if (
-      colors[index] &&
-      selectedColor === colors[index].class
+      deleted[0] &&
+      selectedColor === deleted[0].class
     ) {
-      const first = newColors.find((c) => c !== null);
-      onColorSelect(first ? first.class : 'bg-yellow-200');
+      if (colorsCopy.length > 0) {
+        onColorSelect(colorsCopy[0].class);
+      } else if (customColor) {
+        onColorSelect(customColor.class);
+      } else {
+        onColorSelect('bg-yellow-200');
+      }
     }
   };
 
-  // Updated: handle color click and edit-in-place if selected
-  const handleColorClick = (index) => {
-    if (colors[index]) {
-      if (selectedColor === colors[index].class) {
-        // If already selected, allow editing
+  // Handler for editing custom slot (create or edit)
+  const handleCustomEdit = (newHex) => {
+    const newCustom = {
+      name: 'custom',
+      class: `bg-[${newHex}]`,
+      hex: newHex,
+    };
+    setCustomColor(newCustom);
+    onColorSelect(newCustom.class);
+    setEditingColorIndex(null);
+  };
+
+  // Handler for deleting custom color (returns to empty custom slot)
+  const handleCustomDelete = () => {
+    if (selectedColor === (customColor?.class)) {
+      // Fallback to first available regularColor or hardcoded
+      if (regularColors.length > 0) {
+        onColorSelect(regularColors[0].class);
+      } else {
+        onColorSelect('bg-yellow-200');
+      }
+    }
+    setCustomColor(null);
+    setEditingColorIndex(null);
+  };
+
+  // On click for regular color slot
+  const handleRegularClick = (index) => {
+    if (regularColors[index]) {
+      if (selectedColor === regularColors[index].class) {
         setEditingColorIndex(index);
       } else {
-        onColorSelect(colors[index].class);
+        onColorSelect(regularColors[index].class);
       }
-    } else {
-      // Empty slot - start editing to add new color
-      setEditingColorIndex(index);
     }
   };
 
-  // No need for double click anymore
+  // On click for custom slot
+  const handleCustomClick = () => {
+    if (customColor) {
+      if (selectedColor === customColor.class) {
+        setEditingColorIndex('custom');
+      } else {
+        onColorSelect(customColor.class);
+      }
+    } else {
+      setEditingColorIndex('custom');
+    }
+  };
+
+  // Show up to 5 regular slots, custom slot is always last
+  const numRegularSlots = Math.min(regularColors.length, MAX_SLOT - 1);
 
   return (
     <div className="color-picker">
-      {colors.map((color, index) => (
-        <div key={index} className="color-button-container">
-          {editingColorIndex === index ? (
+      {/* Render regular (predefined) slots */}
+      {regularColors.slice(0, MAX_SLOT - 1).map((color, idx) => (
+        <div key={idx} className="color-button-container">
+          {editingColorIndex === idx ? (
             <input
               type="color"
-              value={color?.hex || ''}
-              onChange={(e) => handleColorEdit(index, e.target.value)}
+              value={color.hex}
+              onChange={(e) => handleColorEdit(idx, e.target.value)}
               onBlur={() => setEditingColorIndex(null)}
               className="color-input-inline"
               autoFocus
             />
           ) : (
             <button
-              onClick={() => handleColorClick(index)}
-              className={`color-button ${color && selectedColor === color.class ? 'selected' : ''} ${!color ? 'empty-slot' : ''}`}
-              style={color ? { backgroundColor: color.hex } : {}}
-              title={color ? `${color.name} (Click again to edit)` : 'Click to add color'}
+              onClick={() => handleRegularClick(idx)}
+              className={`color-button ${selectedColor === color.class ? 'selected' : ''}`}
+              style={{ backgroundColor: color.hex }}
+              title={`${color.name} (Click again to edit)`}
               tabIndex={0}
             >
-              {!color && <Droplet className="w-4 h-4 text-gray-600" />}
-              {/* Delete button: appear only on hover over non-empty slot */}
-              {color && (
-                <span
-                  className="color-delete-btn"
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleColorDelete(index);
-                  }}
-                  tabIndex={-1}
-                  title="Delete color"
-                >
-                  <X size={14} />
-                </span>
-              )}
+              {/* Delete button only on hover */}
+              <span
+                className="color-delete-btn"
+                onClick={e => {
+                  e.stopPropagation();
+                  handleColorDelete(idx);
+                }}
+                tabIndex={-1}
+                title="Delete color"
+              >
+                <X size={14} />
+              </span>
             </button>
           )}
         </div>
       ))}
+
+      {/* Always show the custom slot as last */}
+      <div className="color-button-container">
+        {editingColorIndex === 'custom' ? (
+          <input
+            type="color"
+            value={customColor?.hex || '#FFFF00'}
+            onChange={e => handleCustomEdit(e.target.value)}
+            onBlur={() => setEditingColorIndex(null)}
+            className="color-input-inline"
+            autoFocus
+          />
+        ) : (
+          <button
+            onClick={handleCustomClick}
+            className={`color-button ${customColor && selectedColor === customColor.class ? 'selected' : ''} ${!customColor ? 'empty-slot' : ''}`}
+            style={customColor ? { backgroundColor: customColor.hex } : {}}
+            title={customColor ? 'Custom color (Click again to edit)' : 'Add custom color'}
+            tabIndex={0}
+          >
+            {!customColor && (
+              <ColorWheel className="w-4 h-4 text-gray-600" />
+            )}
+            {customColor && (
+              <span
+                className="color-delete-btn"
+                onClick={e => {
+                  e.stopPropagation();
+                  handleCustomDelete();
+                }}
+                tabIndex={-1}
+                title="Delete custom color"
+              >
+                <X size={14} />
+              </span>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 };
