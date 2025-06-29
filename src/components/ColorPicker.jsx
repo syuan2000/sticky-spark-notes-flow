@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { X, ColorWheel } from 'lucide-react';
+import { X, Circle } from 'lucide-react';
 import '../styles/ColorPicker.css';
 
 const defaultColors = [
@@ -168,7 +167,7 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
             tabIndex={0}
           >
             {!customColor && (
-              <ColorWheel className="w-4 h-4 text-gray-600" />
+              <Circle className="w-4 h-4 text-gray-600" />
             )}
             {customColor && (
               <span
