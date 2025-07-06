@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   ChevronDown,
@@ -37,7 +38,6 @@ const FolderSidebar = ({
   const [dragOverItem, setDragOverItem] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [draggedBoard, setDraggedBoard] = useState(null);
 
   const handleItemEdit = (itemId, currentName) => {
     setEditingItem(itemId);
@@ -62,16 +62,11 @@ const FolderSidebar = ({
         onNoteDrop(draggedNoteId, itemId);
       }
     }
-    if (draggedBoard && isFolder) {
-      // Handle board drop onto folder
-      onBoardMove(draggedBoard.id, itemId);
-      setDraggedBoard(null);
-    }
     setDragOverItem(null);
   };
 
   const handleDragEnter = (itemId) => {
-    if (draggedNoteId || draggedBoard) {
+    if (draggedNoteId) {
       setDragOverItem(itemId);
     }
   };
@@ -80,16 +75,6 @@ const FolderSidebar = ({
     if (dragOverItem === itemId) {
       setDragOverItem(null);
     }
-  };
-
-  const handleBoardDragStart = (board, e) => {
-    setDraggedBoard(board);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleBoardDragEnd = () => {
-    setDraggedBoard(null);
-    setDragOverItem(null);
   };
 
   const handleResizeStart = (e) => {
@@ -158,7 +143,7 @@ const FolderSidebar = ({
     const isFolder = item.type === 'folder';
     const isBoard = item.type === 'board';
     const isSelected = (isFolder && selectedFolder === item.id) || (isBoard && selectedBoard === item.id);
-    const isDragOver = dragOverItem === item.id && (draggedNoteId || (draggedBoard && isFolder));
+    const isDragOver = dragOverItem === item.id && draggedNoteId;
 
     return (
       <div key={item.id} className="folder-item">
@@ -169,9 +154,6 @@ const FolderSidebar = ({
           onMouseEnter={() => handleDragEnter(item.id)}
           onMouseLeave={() => handleDragLeave(item.id)}
           onMouseUp={() => handleDrop(item.id, isFolder)}
-          draggable={isBoard}
-          onDragStart={isBoard ? (e) => handleBoardDragStart(item, e) : undefined}
-          onDragEnd={isBoard ? handleBoardDragEnd : undefined}
         >
           <button
             onClick={(e) => {

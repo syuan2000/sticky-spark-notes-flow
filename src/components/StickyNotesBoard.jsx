@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import StickyNote from './StickyNote';
@@ -119,54 +120,6 @@ const StickyNotesBoard = () => {
       { ...note, boardId: targetId } : note
     ));
     setDraggedNote(null);
-  };
-
-  const handleBoardMove = (boardId, targetFolderId) => {
-    // Remove board from its current location
-    const removeBoardRecursively = (folderList) => {
-      return folderList.map(folder => ({
-        ...folder,
-        children: folder.children ? removeBoardRecursively(folder.children).filter(child => child.id !== boardId) : undefined
-      }));
-    };
-
-    // Find the board being moved
-    const findBoardById = (items, id) => {
-      for (const item of items) {
-        if (item.id === id) return item;
-        if (item.children) {
-          const found = findBoardById(item.children, id);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const boardToMove = findBoardById(folders, boardId);
-    if (!boardToMove) return;
-
-    // Add board to target folder
-    const addBoardToFolder = (folderList) => {
-      return folderList.map(folder => {
-        if (folder.id === targetFolderId) {
-          return {
-            ...folder,
-            children: [...(folder.children || []), boardToMove],
-            isExpanded: true
-          };
-        } else if (folder.children) {
-          return {
-            ...folder,
-            children: addBoardToFolder(folder.children)
-          };
-        }
-        return folder;
-      });
-    };
-
-    const foldersWithoutBoard = removeBoardRecursively(folders);
-    const foldersWithMovedBoard = addBoardToFolder(foldersWithoutBoard);
-    setFolders(foldersWithMovedBoard);
   };
 
   const createFolder = (parentId) => {
@@ -375,7 +328,6 @@ const StickyNotesBoard = () => {
           onWidthChange={setSidebarWidth}
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
-          onBoardMove={handleBoardMove}
           noteCounts={noteCounts}
           draggedNoteId={draggedNote?.id}
           notes={notes}
