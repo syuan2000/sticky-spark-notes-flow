@@ -122,7 +122,6 @@ const StickyNotesBoard = () => {
   };
 
   const handleBoardMove = (boardId, targetFolderId) => {
-    // Find the board being moved
     const findBoardById = (items, id) => {
       for (const item of items) {
         if (item.id === id) return item;
@@ -137,7 +136,6 @@ const StickyNotesBoard = () => {
     const boardToMove = findBoardById(folders, boardId);
     if (!boardToMove) return;
 
-    // Remove board from its current location
     const removeBoardRecursively = (folderList) => {
       return folderList.map(folder => ({
         ...folder,
@@ -145,7 +143,6 @@ const StickyNotesBoard = () => {
       }));
     };
 
-    // Add board to target folder
     const addBoardToFolder = (folderList) => {
       return folderList.map(folder => {
         if (folder.id === targetFolderId) {
@@ -162,6 +159,28 @@ const StickyNotesBoard = () => {
     const foldersWithoutBoard = removeBoardRecursively(folders);
     const foldersWithMovedBoard = addBoardToFolder(foldersWithoutBoard);
     setFolders(foldersWithMovedBoard);
+  };
+
+  const handleBoardReorder = (draggedBoardId, targetBoardId, folderId) => {
+    const reorderBoards = (folderList) => {
+      return folderList.map(folder => {
+        if (folder.id === folderId && folder.children) {
+          const children = [...folder.children];
+          const draggedIndex = children.findIndex(child => child.id === draggedBoardId);
+          const targetIndex = children.findIndex(child => child.id === targetBoardId);
+          
+          if (draggedIndex !== -1 && targetIndex !== -1) {
+            const [draggedBoard] = children.splice(draggedIndex, 1);
+            children.splice(targetIndex, 0, draggedBoard);
+          }
+          
+          return { ...folder, children };
+        }
+        return folder;
+      });
+    };
+    
+    setFolders(reorderBoards(folders));
   };
 
   const createFolder = () => {
@@ -345,13 +364,13 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           onBoardMove={handleBoardMove}
+          onBoardReorder={handleBoardReorder}
           noteCounts={noteCounts}
           draggedNoteId={draggedNote?.id}
           notes={notes}
         />
       </div>
 
-      
       <div 
         className="main-content"
         style={{ marginLeft: currentSidebarWidth }}
