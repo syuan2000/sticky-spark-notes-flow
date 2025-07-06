@@ -28,6 +28,7 @@ const FolderSidebar = ({
   onWidthChange,
   onCollapse,
   onNoteDrop,
+  onBoardMove,
   noteCounts,
   draggedNoteId,
   notes
@@ -57,17 +58,20 @@ const FolderSidebar = ({
   };
 
   const handleDrop = (itemId, isFolder) => {
-    if (draggedNoteId) {
-      if (!isFolder) {
-        onNoteDrop(draggedNoteId, itemId);
-      }
+    if (draggedNoteId && !isFolder) {
+      onNoteDrop(draggedNoteId, itemId);
     }
+    
     if (draggedBoard && isFolder) {
-      // Handle board drop onto folder
       onBoardMove(draggedBoard.id, itemId);
       setDraggedBoard(null);
     }
+    
     setDragOverItem(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
   };
 
   const handleDragEnter = (itemId) => {
@@ -76,8 +80,9 @@ const FolderSidebar = ({
     }
   };
 
-  const handleDragLeave = (itemId) => {
-    if (dragOverItem === itemId) {
+  const handleDragLeave = (e) => {
+    // Only clear drag over if we're actually leaving the element
+    if (!e.currentTarget.contains(e.relatedTarget)) {
       setDragOverItem(null);
     }
   };
@@ -166,9 +171,10 @@ const FolderSidebar = ({
           className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOver ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onItemSelect(item.id)}
-          onMouseEnter={() => handleDragEnter(item.id)}
-          onMouseLeave={() => handleDragLeave(item.id)}
-          onMouseUp={() => handleDrop(item.id, isFolder)}
+          onDragOver={handleDragOver}
+          onDragEnter={() => handleDragEnter(item.id)}
+          onDragLeave={handleDragLeave}
+          onDrop={() => handleDrop(item.id, isFolder)}
           draggable={isBoard}
           onDragStart={isBoard ? (e) => handleBoardDragStart(item, e) : undefined}
           onDragEnd={isBoard ? handleBoardDragEnd : undefined}
