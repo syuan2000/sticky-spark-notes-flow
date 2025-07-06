@@ -1,4 +1,3 @@
-
 .folder-sidebar {
   background-color: white;
   border-right: 1px solid #e5e7eb;
@@ -312,16 +311,14 @@
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   background: transparent;
-  border: 1px solid #e5e7eb;
+  border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease;
   color: #6b7280;
   font-size: 0.875rem;
 }
 
 .new-folder-button:hover {
-  background-color: #f9fafb;
-  border-color: #d1d5db;
   color: #374151;
 }
 
