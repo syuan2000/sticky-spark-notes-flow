@@ -52,6 +52,7 @@ const FolderSidebar = ({
   const [isResizing, setIsResizing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedBoard, setDraggedBoard] = useState(null);
+  const [draggedOverBoard, setDraggedOverBoard] = useState(null);
 
   const handleItemEdit = (itemId, currentName) => {
     setEditingItem(itemId);
@@ -70,9 +71,7 @@ const FolderSidebar = ({
     handleItemEdit(itemId, itemName);
   };
 
-  const handleDrop = (e, itemId, isFolder) => {
-    e.preventDefault();
-    
+  const handleDrop = (itemId, isFolder) => {
     // Handle note drops (only on boards)
     if (draggedNoteId && !isFolder) {
       onNoteDrop(draggedNoteId, itemId);
@@ -89,15 +88,16 @@ const FolderSidebar = ({
     }
     
     setDragOverItem(null);
+    setDraggedOverBoard(null);
   };
 
   const findParentFolder = (boardId) => {
-    const findParent = (items) => {
+    const findParent = (items, parentFolder = null) => {
       for (const item of items) {
         if (item.type === 'folder' && item.children) {
           const found = item.children.find(child => child.id === boardId);
           if (found) return item;
-          const deepFound = findParent(item.children);
+          const deepFound = findParent(item.children, item);
           if (deepFound) return deepFound;
         }
       }
@@ -110,10 +110,8 @@ const FolderSidebar = ({
     e.preventDefault();
   };
 
-  const handleDragEnter = (e, itemId, isFolder) => {
-    e.preventDefault();
-    // Show drag over effect for notes on boards, or boards on boards for reordering
-    if ((draggedNoteId && !isFolder) || (draggedBoard && !isFolder && draggedBoard.id !== itemId)) {
+  const handleDragEnter = (itemId) => {
+    if (draggedNoteId || draggedBoard) {
       setDragOverItem(itemId);
     }
   };
@@ -133,6 +131,13 @@ const FolderSidebar = ({
   const handleBoardDragEnd = () => {
     setDraggedBoard(null);
     setDragOverItem(null);
+    setDraggedOverBoard(null);
+  };
+
+  const handleBoardDragEnter = (boardId) => {
+    if (draggedBoard && draggedBoard.id !== boardId) {
+      setDraggedOverBoard(boardId);
+    }
   };
 
   const handleResizeStart = (e) => {
@@ -216,18 +221,25 @@ const FolderSidebar = ({
     const isFolder = item.type === 'folder';
     const isBoard = item.type === 'board';
     const isSelected = (isFolder && selectedFolder === item.id) || (isBoard && selectedBoard === item.id);
-    const isDragOver = dragOverItem === item.id && ((draggedNoteId && !isFolder) || (draggedBoard && !isFolder));
+    const isDragOverForNote = dragOverItem === item.id && draggedNoteId && !isFolder;
+    const isDragOverForBoard = draggedOverBoard === item.id && draggedBoard && !isFolder;
 
     return (
       <div key={item.id} className="folder-item">
         <div
-          className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOver ? 'drag-over' : ''}`}
+          className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOverForNote || isDragOverForBoard ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onItemSelect(item.id)}
           onDragOver={handleDragOver}
-          onDragEnter={(e) => handleDragEnter(e, item.id, isFolder)}
+          onDragEnter={() => {
+            if (draggedNoteId && !isFolder) {
+              handleDragEnter(item.id);
+            } else if (draggedBoard && !isFolder) {
+              handleBoardDragEnter(item.id);
+            }
+          }}
           onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, item.id, isFolder)}
+          onDrop={() => handleDrop(item.id, isFolder)}
           draggable={isBoard}
           onDragStart={isBoard ? (e) => handleBoardDragStart(item, e) : undefined}
           onDragEnd={isBoard ? handleBoardDragEnd : undefined}
@@ -271,11 +283,6 @@ const FolderSidebar = ({
               <span className="folder-name" draggable={false}>
                 {item.name}
               </span>
-              {isBoard && noteCounts[item.id] > 0 && (
-                <span className="note-count-badge">
-                  {noteCounts[item.id]}
-                </span>
-              )}
               {isFolder && item.children?.length > 0 && (
                 <span className="note-count-badge">
                   {item.children.length}
@@ -376,14 +383,15 @@ const FolderSidebar = ({
             </div>
           </div>
           <div className="search-bar">
-            <Search size={16} className="search-icon" />
-            <input
+          <Search size={16} className="search-icon" />
+             <input
               type="text"
               placeholder="Search boards..."
               className="search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            
           </div>
         </div>
 
