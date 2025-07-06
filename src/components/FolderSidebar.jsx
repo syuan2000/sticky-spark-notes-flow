@@ -6,6 +6,7 @@ import {
   FolderOpen,
   FileText,
   Plus,
+  CirclePlus,
   MoreHorizontal,
   Trash2,
   ChevronsLeft,
@@ -404,7 +405,7 @@ const FolderSidebar = ({
             className="new-folder-button"
             title="New Folder"
           >
-            <Plus className="new-folder-icon" />
+            <CirclePlus className="new-folder-icon" />
             <span className="new-folder-text">New Folder</span>
           </button>
         </div>
