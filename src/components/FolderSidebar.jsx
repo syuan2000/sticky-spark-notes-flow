@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   ChevronDown,
@@ -244,7 +245,7 @@ const FolderSidebar = ({
           <div className="header-row">
             <h2 className="sidebar-title">Boards</h2>
             <div className="header-buttons">
-              <button onClick={() => onFolderCreate()} className="header-button" title="New Folder">
+              <button onClick={() => onBoardCreate('all-boards')} className="header-button" title="New Board">
                 <Plus className="header-icon" />
               </button>
               <button onClick={onCollapse} className="header-button">
@@ -267,6 +268,17 @@ const FolderSidebar = ({
 
         <div className="folders-container">
           {filterItems(folders).map(folder => renderItem(folder))}
+        </div>
+        
+        <div className="sidebar-footer">
+          <button 
+            onClick={() => onFolderCreate()} 
+            className="new-folder-button"
+            title="New Folder"
+          >
+            <Plus className="new-folder-icon" />
+            <span className="new-folder-text">New Folder</span>
+          </button>
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+
 .folder-sidebar {
   background-color: white;
   border-right: 1px solid #e5e7eb;
@@ -295,6 +296,44 @@
 
 .folder-children {
   overflow: hidden;
+}
+
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: auto;
+}
+
+.new-folder-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.new-folder-button:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.new-folder-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.new-folder-text {
+  font-weight: 500;
+  user-select: none;
 }
 
 .resize-handle {
