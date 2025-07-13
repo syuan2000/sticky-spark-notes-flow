@@ -26,7 +26,7 @@ const StickyNotesBoard = () => {
   const [selectedBoard, setSelectedBoard] = useState('quick-notes');
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [draggedNote, setDraggedNote] = useState(null);
+  
 
   const getNoteCountForBoard = (boardId) => {
     return notes.filter(note => note.boardId === boardId).length;
@@ -110,7 +110,6 @@ const StickyNotesBoard = () => {
     
     // Only allow dropping on boards, not folders
     if (!targetItem || targetItem.type !== 'board') {
-      setDraggedNote(null);
       return;
     }
 
@@ -118,7 +117,6 @@ const StickyNotesBoard = () => {
       note.id === noteId ? 
       { ...note, boardId: targetId } : note
     ));
-    setDraggedNote(null);
   };
 
   const handleBoardMove = (boardId, targetFolderId) => {
@@ -343,7 +341,6 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           onBoardMove={handleBoardMove}
-          draggedNoteId={draggedNote?.id}
           notes={notes}
         />
       </div>
@@ -420,8 +417,8 @@ const StickyNotesBoard = () => {
                 onDelete={deleteNote}
                 onMove={moveNote}
                 onResize={resizeNote}
-                onStartDrag={() => setDraggedNote(note)}
-                onEndDrag={() => setDraggedNote(null)}
+                onStartDrag={undefined}
+                onEndDrag={undefined}
               />
             ))
           )}

@@ -42,7 +42,6 @@ const FolderSidebar = ({
   onCollapse,
   onNoteDrop,
   onBoardMove,
-  draggedNoteId,
   notes
 }) => {
   const [editingItem, setEditingItem] = useState(null);
@@ -125,7 +124,7 @@ const FolderSidebar = ({
     const isFolder = item.type === 'folder';
     const isBoard = item.type === 'board';
     const isSelected = (isFolder && selectedFolder === item.id) || (isBoard && selectedBoard === item.id);
-    const isDragOverForNote = dragOverItem === item.id && draggedNoteId && !isFolder;
+    const isDragOverForNote = dragOverItem === item.id && !isFolder;
 
     return (
       <div key={item.id} className="folder-item">
@@ -133,10 +132,10 @@ const FolderSidebar = ({
           className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOverForNote ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onItemSelect(item.id)}
-          onDragOver={(e) => e.preventDefault()}
-          onDragEnter={(e) => {
-            const noteId = e.dataTransfer?.getData('application/note-id');
-            if (noteId && !isFolder) {
+          onDragOver={(e) => {
+            e.preventDefault();
+            // Only allow drop on boards, not folders
+            if (!isFolder) {
               setDragOverItem(item.id);
             }
           }}
@@ -146,7 +145,8 @@ const FolderSidebar = ({
             }
           }}
           onDrop={(e) => {
-            const noteId = e.dataTransfer?.getData('application/note-id');
+            e.preventDefault();
+            const noteId = e.dataTransfer.getData('application/note-id');
             if (noteId && !isFolder) {
               onNoteDrop(noteId, item.id);
             }
