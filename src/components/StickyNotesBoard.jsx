@@ -161,27 +161,6 @@ const StickyNotesBoard = () => {
     setFolders(foldersWithMovedBoard);
   };
 
-  const handleBoardReorder = (draggedBoardId, targetBoardId, folderId) => {
-    const reorderBoards = (folderList) => {
-      return folderList.map(folder => {
-        if (folder.id === folderId && folder.children) {
-          const children = [...folder.children];
-          const draggedIndex = children.findIndex(child => child.id === draggedBoardId);
-          const targetIndex = children.findIndex(child => child.id === targetBoardId);
-          
-          if (draggedIndex !== -1 && targetIndex !== -1) {
-            const [draggedBoard] = children.splice(draggedIndex, 1);
-            children.splice(targetIndex, 0, draggedBoard);
-          }
-          
-          return { ...folder, children };
-        }
-        return folder;
-      });
-    };
-    
-    setFolders(reorderBoards(folders));
-  };
 
   const createFolder = () => {
     const newFolder = {
@@ -364,8 +343,6 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           onBoardMove={handleBoardMove}
-          onBoardReorder={handleBoardReorder}
-          noteCounts={noteCounts}
           draggedNoteId={draggedNote?.id}
           notes={notes}
         />

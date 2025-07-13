@@ -6,22 +6,23 @@ import {
   FolderOpen,
   FileText,
   Plus,
-  CirclePlus,
   MoreHorizontal,
   Trash2,
   ChevronsLeft,
   Search,
   Move,
+  CirclePlus,
+  Edit,
 } from 'lucide-react';
 import {
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
-  DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
+  DropdownMenuSubContent
 } from './ui/dropdown-menu';
 import '../styles/FolderSidebar.css';
 
@@ -41,8 +42,6 @@ const FolderSidebar = ({
   onCollapse,
   onNoteDrop,
   onBoardMove,
-  onBoardReorder,
-  noteCounts,
   draggedNoteId,
   notes
 }) => {
@@ -51,8 +50,6 @@ const FolderSidebar = ({
   const [dragOverItem, setDragOverItem] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [draggedBoard, setDraggedBoard] = useState(null);
-  const [draggedOverBoard, setDraggedOverBoard] = useState(null);
 
   const handleItemEdit = (itemId, currentName) => {
     setEditingItem(itemId);
@@ -71,146 +68,6 @@ const FolderSidebar = ({
     handleItemEdit(itemId, itemName);
   };
 
-  const handleDrop = (e, itemId, isFolder) => {
-    e.preventDefault();
-    
-    // Handle HTML5 drag-and-drop for notes
-    const noteId = e.dataTransfer.getData('application/note-id');
-    if (noteId && !isFolder) {
-      onNoteDrop(noteId, itemId);
-      setDragOverItem(null);
-      return;
-    }
-    
-    // Handle note drops from existing draggedNoteId state (fallback)
-    if (draggedNoteId && !isFolder) {
-      onNoteDrop(draggedNoteId, itemId);
-    }
-    
-    // Handle board reordering within the same folder
-    if (draggedBoard && !isFolder && draggedBoard.id !== itemId) {
-      const draggedBoardParent = findParentFolder(draggedBoard.id);
-      const targetBoardParent = findParentFolder(itemId);
-      
-      if (draggedBoardParent && targetBoardParent && draggedBoardParent.id === targetBoardParent.id) {
-        onBoardReorder(draggedBoard.id, itemId, draggedBoardParent.id);
-      }
-    }
-    
-    setDragOverItem(null);
-    setDraggedOverBoard(null);
-  };
-
-  const findParentFolder = (boardId) => {
-    const findParent = (items, parentFolder = null) => {
-      for (const item of items) {
-        if (item.type === 'folder' && item.children) {
-          const found = item.children.find(child => child.id === boardId);
-          if (found) return item;
-          const deepFound = findParent(item.children, item);
-          if (deepFound) return deepFound;
-        }
-      }
-      return null;
-    };
-    return findParent(folders);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDragEnter = (e, itemId) => {
-    const noteId = e.dataTransfer?.types.includes('application/note-id');
-    if (draggedNoteId || draggedBoard || noteId) {
-      setDragOverItem(itemId);
-    }
-  };
-
-  const handleDragLeave = (e) => {
-    // Only clear drag over if we're actually leaving the element
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setDragOverItem(null);
-    }
-  };
-
-  const handleBoardDragStart = (board, e) => {
-    setDraggedBoard(board);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleBoardDragEnd = () => {
-    setDraggedBoard(null);
-    setDragOverItem(null);
-    setDraggedOverBoard(null);
-  };
-
-  const handleBoardDragEnter = (boardId) => {
-    if (draggedBoard && draggedBoard.id !== boardId) {
-      setDraggedOverBoard(boardId);
-    }
-  };
-
-  const handleResizeStart = (e) => {
-    e.preventDefault();
-    setIsResizing(true);
-
-    const startX = e.clientX;
-    const startWidth = width;
-    const maxWidth = Math.floor(window.innerWidth / 3);
-
-    const handleMouseMove = (e) => {
-      const newWidth = Math.max(200, Math.min(maxWidth, startWidth + (e.clientX - startX)));
-      onWidthChange(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const filterItems = (items) => {
-    if (!searchTerm.trim()) return items;
-  
-    const lowerSearch = searchTerm.toLowerCase();
-  
-    return items.reduce((acc, item) => {
-      const isFolder = item.type === 'folder';
-      const isBoard = item.type === 'board';
-      let match = false;
-  
-      if (item.name.toLowerCase().includes(lowerSearch)) {
-        match = true;
-      }
-      if (isBoard && notes) {
-        const relatedNotes = notes.filter(note => note.boardId === item.id);
-        const noteMatch = relatedNotes.some(note =>
-          note.content.toLowerCase().includes(lowerSearch)
-        );
-        if (noteMatch) {
-          match = true;
-        }
-      }
-  
-      if (isFolder && item.children && item.children.length > 0) {
-        const filteredChildren = filterItems(item.children);
-        if (filteredChildren.length > 0) {
-          acc.push({ ...item, children: filteredChildren, isExpanded: true });
-          return acc;
-        }
-      }
-      if (match) {
-        acc.push(item);
-      }
-      return acc;
-    }, []);
-  };
-
   const getAllFolders = () => {
     const allFolders = [];
     const collectFolders = (items) => {
@@ -227,34 +84,74 @@ const FolderSidebar = ({
     return allFolders;
   };
 
+  const filterItems = (items) => {
+    if (!searchTerm.trim()) return items;
+    const lowerSearch = searchTerm.toLowerCase();
+
+    return items.reduce((acc, item) => {
+      const isFolder = item.type === 'folder';
+      const isBoard = item.type === 'board';
+      let match = false;
+
+      if (item.name.toLowerCase().includes(lowerSearch)) {
+        match = true;
+      }
+      if (isBoard && notes) {
+        const relatedNotes = notes.filter(note => note.boardId === item.id);
+        const noteMatch = relatedNotes.some(note =>
+          note.content.toLowerCase().includes(lowerSearch)
+        );
+        if (noteMatch) {
+          match = true;
+        }
+      }
+
+      if (isFolder && item.children && item.children.length > 0) {
+        const filteredChildren = filterItems(item.children);
+        if (filteredChildren.length > 0) {
+          acc.push({ ...item, children: filteredChildren, isExpanded: true });
+          return acc;
+        }
+      }
+      if (match) {
+        acc.push(item);
+      }
+      return acc;
+    }, []);
+  };
+
   const renderItem = (item, level = 0) => {
     const hasChildren = item.children && item.children.length > 0;
     const isFolder = item.type === 'folder';
     const isBoard = item.type === 'board';
     const isSelected = (isFolder && selectedFolder === item.id) || (isBoard && selectedBoard === item.id);
     const isDragOverForNote = dragOverItem === item.id && draggedNoteId && !isFolder;
-    const isDragOverForBoard = draggedOverBoard === item.id && draggedBoard && !isFolder;
 
     return (
       <div key={item.id} className="folder-item">
         <div
-          className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOverForNote || isDragOverForBoard ? 'drag-over' : ''}`}
+          className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOverForNote ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onItemSelect(item.id)}
-          onDragOver={handleDragOver}
+          onDragOver={(e) => e.preventDefault()}
           onDragEnter={(e) => {
-            const noteId = e.dataTransfer?.types.includes('application/note-id');
-            if ((draggedNoteId || noteId) && !isFolder) {
-              handleDragEnter(e, item.id);
-            } else if (draggedBoard && !isFolder) {
-              handleBoardDragEnter(item.id);
+            const noteId = e.dataTransfer?.getData('application/note-id');
+            if (noteId && !isFolder) {
+              setDragOverItem(item.id);
             }
           }}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, item.id, isFolder)}
-          draggable={isBoard}
-          onDragStart={isBoard ? (e) => handleBoardDragStart(item, e) : undefined}
-          onDragEnd={isBoard ? handleBoardDragEnd : undefined}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+              setDragOverItem(null);
+            }
+          }}
+          onDrop={(e) => {
+            const noteId = e.dataTransfer?.getData('application/note-id');
+            if (noteId && !isFolder) {
+              onNoteDrop(noteId, item.id);
+            }
+            setDragOverItem(null);
+          }}
         >
           <button
             onClick={(e) => {
@@ -309,7 +206,7 @@ const FolderSidebar = ({
                 <Plus className="folder-action-icon" />
               </button>
             )}
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button onClick={(e) => e.stopPropagation()} className="folder-action-button" title="More options">
@@ -318,9 +215,10 @@ const FolderSidebar = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => handleItemEdit(item.id, item.name)}>
+                <Edit className="mr-2 h-4 w-4" />
                   Rename
                 </DropdownMenuItem>
-                
+
                 {isBoard && (
                   <>
                     <DropdownMenuSeparator />
@@ -342,11 +240,11 @@ const FolderSidebar = ({
                     </DropdownMenuSub>
                   </>
                 )}
-                
+
                 {item.id !== 'all-boards' && item.id !== 'quick-notes' && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onItemDelete(item.id)}
                       className="text-red-600"
                     >
@@ -395,25 +293,24 @@ const FolderSidebar = ({
             </div>
           </div>
           <div className="search-bar">
-          <Search size={16} className="search-icon" />
-             <input
+            <Search size={16} className="search-icon" />
+            <input
               type="text"
               placeholder="Search boards..."
               className="search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            
           </div>
         </div>
 
         <div className="folders-container">
           {filterItems(folders).map(folder => renderItem(folder))}
         </div>
-        
+
         <div className="sidebar-footer">
-          <button 
-            onClick={() => onFolderCreate()} 
+          <button
+            onClick={() => onFolderCreate()}
             className="new-folder-button"
             title="New Folder"
           >
@@ -423,7 +320,28 @@ const FolderSidebar = ({
         </div>
       </div>
 
-      <div onMouseDown={handleResizeStart} className={`resize-handle ${isResizing ? 'resizing' : ''}`} />
+      <div onMouseDown={(e) => {
+        e.preventDefault();
+        setIsResizing(true);
+
+        const startX = e.clientX;
+        const startWidth = width;
+        const maxWidth = Math.floor(window.innerWidth / 3);
+
+        const handleMouseMove = (e) => {
+          const newWidth = Math.max(200, Math.min(maxWidth, startWidth + (e.clientX - startX)));
+          onWidthChange(newWidth);
+        };
+
+        const handleMouseUp = () => {
+          setIsResizing(false);
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      }} className={`resize-handle ${isResizing ? 'resizing' : ''}`} />
     </div>
   );
 };
