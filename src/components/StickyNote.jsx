@@ -110,6 +110,29 @@ const StickyNote = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  // HTML5 drag-and-drop handlers for dropping notes to different boards
+  const handleDragStart = (e) => {
+    if (isResizing || isEditing) return;
+    
+    // Set the note ID in dataTransfer for the sidebar to receive
+    e.dataTransfer.setData('application/note-id', id);
+    e.dataTransfer.effectAllowed = 'move';
+    
+    // Call the parent's drag start handler
+    onStartDrag?.();
+    
+    // Add visual feedback
+    e.currentTarget.style.opacity = '0.7';
+  };
+
+  const handleDragEnd = (e) => {
+    // Reset visual feedback
+    e.currentTarget.style.opacity = '1';
+    
+    // Call the parent's drag end handler
+    onEndDrag?.();
+  };
+
   // Extract hex color from custom color classes like bg-[#hexcode]
   const getBackgroundColor = () => {
     if (color.startsWith('bg-[') && color.endsWith(']')) {
@@ -130,7 +153,10 @@ const StickyNote = ({
     <div
       className={`sticky-note ${getBackgroundColor() ? '' : color} ${isDragging ? 'dragging' : ''}`}
       style={noteStyle}
+      draggable={!isResizing && !isEditing}
       onMouseDown={!isResizing ? handleMouseDown : undefined}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <div className="sticky-note-header">
         <GripVertical className="grip-icon" />

@@ -71,8 +71,18 @@ const FolderSidebar = ({
     handleItemEdit(itemId, itemName);
   };
 
-  const handleDrop = (itemId, isFolder) => {
-    // Handle note drops (only on boards)
+  const handleDrop = (e, itemId, isFolder) => {
+    e.preventDefault();
+    
+    // Handle HTML5 drag-and-drop for notes
+    const noteId = e.dataTransfer.getData('application/note-id');
+    if (noteId && !isFolder) {
+      onNoteDrop(noteId, itemId);
+      setDragOverItem(null);
+      return;
+    }
+    
+    // Handle note drops from existing draggedNoteId state (fallback)
     if (draggedNoteId && !isFolder) {
       onNoteDrop(draggedNoteId, itemId);
     }
@@ -110,8 +120,9 @@ const FolderSidebar = ({
     e.preventDefault();
   };
 
-  const handleDragEnter = (itemId) => {
-    if (draggedNoteId || draggedBoard) {
+  const handleDragEnter = (e, itemId) => {
+    const noteId = e.dataTransfer?.types.includes('application/note-id');
+    if (draggedNoteId || draggedBoard || noteId) {
       setDragOverItem(itemId);
     }
   };
@@ -231,15 +242,16 @@ const FolderSidebar = ({
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onItemSelect(item.id)}
           onDragOver={handleDragOver}
-          onDragEnter={() => {
-            if (draggedNoteId && !isFolder) {
-              handleDragEnter(item.id);
+          onDragEnter={(e) => {
+            const noteId = e.dataTransfer?.types.includes('application/note-id');
+            if ((draggedNoteId || noteId) && !isFolder) {
+              handleDragEnter(e, item.id);
             } else if (draggedBoard && !isFolder) {
               handleBoardDragEnter(item.id);
             }
           }}
           onDragLeave={handleDragLeave}
-          onDrop={() => handleDrop(item.id, isFolder)}
+          onDrop={(e) => handleDrop(e, item.id, isFolder)}
           draggable={isBoard}
           onDragStart={isBoard ? (e) => handleBoardDragStart(item, e) : undefined}
           onDragEnd={isBoard ? handleBoardDragEnd : undefined}
