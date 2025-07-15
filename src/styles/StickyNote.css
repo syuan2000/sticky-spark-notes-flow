@@ -26,6 +26,12 @@
   margin-bottom: 0.5rem;
 }
 
+.note-actions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
 .grip-icon {
   width: 1rem;
   height: 1rem;
@@ -33,7 +39,8 @@
   opacity: 0.5;
 }
 
-.delete-note-button {
+.delete-note-button,
+.move-note-button {
   padding: 0.25rem;
   border-radius: 50%;
   background: transparent;
@@ -42,11 +49,13 @@
   transition: background-color 0.3s ease;
 }
 
-.delete-note-button:hover {
+.delete-note-button:hover,
+.move-note-button:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-.delete-note-icon {
+.delete-note-icon,
+.move-note-icon {
   width: 1rem;
   height: 1rem;
   color: #4b5563;

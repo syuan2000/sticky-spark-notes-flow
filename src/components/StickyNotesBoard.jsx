@@ -93,6 +93,28 @@ const StickyNotesBoard = () => {
     ));
   };
 
+  const moveNoteToBoard = (noteId, targetBoardId) => {
+    setNotes(notes.map(note => 
+      note.id === noteId ? { ...note, boardId: targetBoardId } : note
+    ));
+  };
+
+  const getAllBoards = () => {
+    const boards = [];
+    const collectBoards = (items) => {
+      items.forEach(item => {
+        if (item.type === 'board') {
+          boards.push(item);
+        }
+        if (item.children) {
+          collectBoards(item.children);
+        }
+      });
+    };
+    collectBoards(folders);
+    return boards;
+  };
+
   const handleNoteDrop = (noteId, targetId) => {
     // Find if target is a board
     const findItemById = (items, id) => {
@@ -419,6 +441,8 @@ const StickyNotesBoard = () => {
                 onResize={resizeNote}
                 onStartDrag={undefined}
                 onEndDrag={undefined}
+                onMoveToBoard={moveNoteToBoard}
+                availableBoards={getAllBoards().filter(board => board.id !== note.boardId)}
               />
             ))
           )}

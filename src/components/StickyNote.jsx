@@ -1,6 +1,14 @@
 
 import React, { useState } from 'react';
-import { X, GripVertical } from 'lucide-react';
+import { X, GripVertical, FolderInput } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from './ui/dropdown-menu';
 import '../styles/StickyNote.css';
 
 const StickyNote = ({
@@ -14,7 +22,9 @@ const StickyNote = ({
   onMove,
   onResize,
   onStartDrag,
-  onEndDrag
+  onEndDrag,
+  onMoveToBoard,
+  availableBoards = []
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(content);
@@ -187,12 +197,35 @@ const StickyNote = ({
     >
       <div className="sticky-note-header">
         <GripVertical className="grip-icon" />
-        <button
-          onClick={() => onDelete(id)}
-          className="delete-note-button"
-        >
-          <X className="delete-note-icon" />
-        </button>
+        <div className="note-actions">
+          {availableBoards.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="move-note-button" title="Move to board">
+                  <FolderInput className="move-note-icon" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Move to board</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {availableBoards.map(board => (
+                  <DropdownMenuItem
+                    key={board.id}
+                    onClick={() => onMoveToBoard?.(id, board.id)}
+                  >
+                    {board.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <button
+            onClick={() => onDelete(id)}
+            className="delete-note-button"
+          >
+            <X className="delete-note-icon" />
+          </button>
+        </div>
       </div>
       
       {isEditing ? (
