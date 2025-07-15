@@ -4,7 +4,7 @@
   height: 100%;
   display: flex;
   position: relative;
-  z-index: 30;
+  z-index: 10;
   transition: width 0.2s ease;
   max-width: 33.333vw;
 }
