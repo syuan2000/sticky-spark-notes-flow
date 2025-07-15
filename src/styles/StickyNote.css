@@ -14,22 +14,11 @@
   z-index: 1000;
 }
 
-.sticky-note.html5-dragging {
-  z-index: 1001;
-  cursor: grabbing;
-}
-
 .sticky-note-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.5rem;
-}
-
-.note-actions {
-  display: flex;
-  gap: 0.25rem;
-  align-items: center;
 }
 
 .grip-icon {
@@ -39,8 +28,7 @@
   opacity: 0.5;
 }
 
-.delete-note-button,
-.move-note-button {
+.delete-note-button {
   padding: 0.25rem;
   border-radius: 50%;
   background: transparent;
@@ -49,13 +37,11 @@
   transition: background-color 0.3s ease;
 }
 
-.delete-note-button:hover,
-.move-note-button:hover {
+.delete-note-button:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-.delete-note-icon,
-.move-note-icon {
+.delete-note-icon {
   width: 1rem;
   height: 1rem;
   color: #4b5563;

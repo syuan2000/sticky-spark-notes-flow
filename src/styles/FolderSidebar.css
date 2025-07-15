@@ -4,7 +4,7 @@
   height: 100%;
   display: flex;
   position: relative;
-  z-index: 20;
+  z-index: 30;
   transition: width 0.2s ease;
   max-width: 33.333vw;
 }
@@ -166,7 +166,7 @@
 
 .folder-row.drag-over {
   background-color: #bfdbfe;
-  border: 1px dashed #2563eb;
+  border: 2px dashed #2563eb;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
@@ -299,6 +299,7 @@
 
 .sidebar-footer {
   padding: 1rem;
+  border-top: 1px solid #e5e7eb;
   margin-top: auto;
 }
 

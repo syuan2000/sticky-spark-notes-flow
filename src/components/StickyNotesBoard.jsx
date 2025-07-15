@@ -9,7 +9,7 @@ const StickyNotesBoard = () => {
   const [notes, setNotes] = useState([]);
   const [selectedColor, setSelectedColor] = useState('bg-yellow-200');
   
-  // Clean folder structure - boards don't have children
+  // New structure: folders contain boards, boards contain notes
   const [folders, setFolders] = useState([
     { 
       id: 'all-boards', 
@@ -17,7 +17,7 @@ const StickyNotesBoard = () => {
       type: 'folder',
       isExpanded: true, 
       children: [
-        { id: 'quick-notes', name: 'Quick Notes', type: 'board' }
+        { id: 'quick-notes', name: 'Quick Notes', type: 'board', children: [] }
       ] 
     },
   ]);
@@ -26,7 +26,7 @@ const StickyNotesBoard = () => {
   const [selectedBoard, setSelectedBoard] = useState('quick-notes');
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
+  const [draggedNote, setDraggedNote] = useState(null);
 
   const getNoteCountForBoard = (boardId) => {
     return notes.filter(note => note.boardId === boardId).length;
@@ -93,30 +93,8 @@ const StickyNotesBoard = () => {
     ));
   };
 
-  const moveNoteToBoard = (noteId, targetBoardId) => {
-    setNotes(notes.map(note => 
-      note.id === noteId ? { ...note, boardId: targetBoardId } : note
-    ));
-  };
-
-  const getAllBoards = () => {
-    const boards = [];
-    const collectBoards = (items) => {
-      items.forEach(item => {
-        if (item.type === 'board') {
-          boards.push(item);
-        }
-        if (item.children) {
-          collectBoards(item.children);
-        }
-      });
-    };
-    collectBoards(folders);
-    return boards;
-  };
-
   const handleNoteDrop = (noteId, targetId) => {
-    // Find if target is a board
+    // Find if target is a board or folder
     const findItemById = (items, id) => {
       for (const item of items) {
         if (item.id === id) return item;
@@ -132,6 +110,7 @@ const StickyNotesBoard = () => {
     
     // Only allow dropping on boards, not folders
     if (!targetItem || targetItem.type !== 'board') {
+      setDraggedNote(null);
       return;
     }
 
@@ -139,9 +118,19 @@ const StickyNotesBoard = () => {
       note.id === noteId ? 
       { ...note, boardId: targetId } : note
     ));
+    setDraggedNote(null);
   };
 
   const handleBoardMove = (boardId, targetFolderId) => {
+    // Remove board from its current location
+    const removeBoardRecursively = (folderList) => {
+      return folderList.map(folder => ({
+        ...folder,
+        children: folder.children ? removeBoardRecursively(folder.children).filter(child => child.id !== boardId) : undefined
+      }));
+    };
+
+    // Find the board being moved
     const findBoardById = (items, id) => {
       for (const item of items) {
         if (item.id === id) return item;
@@ -156,13 +145,7 @@ const StickyNotesBoard = () => {
     const boardToMove = findBoardById(folders, boardId);
     if (!boardToMove) return;
 
-    const removeBoardRecursively = (folderList) => {
-      return folderList.map(folder => ({
-        ...folder,
-        children: folder.children ? folder.children.filter(child => child.id !== boardId) : []
-      }));
-    };
-
+    // Add board to target folder
     const addBoardToFolder = (folderList) => {
       return folderList.map(folder => {
         if (folder.id === targetFolderId) {
@@ -170,6 +153,11 @@ const StickyNotesBoard = () => {
             ...folder,
             children: [...(folder.children || []), boardToMove],
             isExpanded: true
+          };
+        } else if (folder.children) {
+          return {
+            ...folder,
+            children: addBoardToFolder(folder.children)
           };
         }
         return folder;
@@ -181,8 +169,7 @@ const StickyNotesBoard = () => {
     setFolders(foldersWithMovedBoard);
   };
 
-
-  const createFolder = () => {
+  const createFolder = (parentId) => {
     const newFolder = {
       id: Date.now().toString(),
       name: 'New Folder',
@@ -191,7 +178,27 @@ const StickyNotesBoard = () => {
       children: [],
     };
 
-    setFolders([...folders, newFolder]);
+    if (parentId) {
+      const updateFoldersRecursively = (folderList) => {
+        return folderList.map(folder => {
+          if (folder.id === parentId) {
+            return {
+              ...folder,
+              children: [...(folder.children || []), newFolder],
+            };
+          } else if (folder.children) {
+            return {
+              ...folder,
+              children: updateFoldersRecursively(folder.children),
+            };
+          }
+          return folder;
+        });
+      };
+      setFolders(updateFoldersRecursively(folders));
+    } else {
+      setFolders([...folders, newFolder]);
+    }
   };
 
   const createBoard = (parentId) => {
@@ -199,6 +206,7 @@ const StickyNotesBoard = () => {
       id: Date.now().toString(),
       name: 'New Board',
       type: 'board',
+      children: [],
     };
 
     const updateFoldersRecursively = (folderList) => {
@@ -207,7 +215,7 @@ const StickyNotesBoard = () => {
           return {
             ...folder,
             children: [...(folder.children || []), newBoard],
-            isExpanded: true,
+            isExpanded: true, // Expand folder when adding board
           };
         } else if (folder.children) {
           return {
@@ -219,7 +227,12 @@ const StickyNotesBoard = () => {
       });
     };
 
-    setFolders(updateFoldersRecursively(folders));
+    if (parentId) {
+      setFolders(updateFoldersRecursively(folders));
+    } else {
+      // Add to All Boards folder by default
+      setFolders(updateFoldersRecursively(folders));
+    }
     
     // Auto-select the new board
     setSelectedBoard(newBoard.id);
@@ -232,7 +245,7 @@ const StickyNotesBoard = () => {
         .filter(item => item.id !== itemId)
         .map(item => ({
           ...item,
-          children: item.children ? item.children.filter(child => child.id !== itemId) : [],
+          children: item.children ? deleteItemRecursively(item.children) : undefined,
         }));
     };
     
@@ -363,6 +376,8 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           onBoardMove={handleBoardMove}
+          noteCounts={noteCounts}
+          draggedNoteId={draggedNote?.id}
           notes={notes}
         />
       </div>
@@ -439,10 +454,8 @@ const StickyNotesBoard = () => {
                 onDelete={deleteNote}
                 onMove={moveNote}
                 onResize={resizeNote}
-                onStartDrag={undefined}
-                onEndDrag={undefined}
-                onMoveToBoard={moveNoteToBoard}
-                availableBoards={getAllBoards().filter(board => board.id !== note.boardId)}
+                onStartDrag={() => setDraggedNote(note)}
+                onEndDrag={() => setDraggedNote(null)}
               />
             ))
           )}
