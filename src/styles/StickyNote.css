@@ -12,7 +12,11 @@
 
 .sticky-note.dragging {
   z-index: 1000;
-  pointer-events: none;
+}
+
+.sticky-note.html5-dragging {
+  z-index: 1001;
+  cursor: grabbing;
 }
 
 .sticky-note-header {

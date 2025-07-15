@@ -134,9 +134,13 @@ const FolderSidebar = ({
           onClick={() => onItemSelect(item.id)}
           onDragOver={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             // Only allow drop on boards, not folders
             if (!isFolder) {
               setDragOverItem(item.id);
+              e.dataTransfer.dropEffect = 'move';
+            } else {
+              e.dataTransfer.dropEffect = 'none';
             }
           }}
           onDragLeave={(e) => {
@@ -146,7 +150,9 @@ const FolderSidebar = ({
           }}
           onDrop={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             const noteId = e.dataTransfer.getData('application/note-id');
+            console.log('Drop event on board:', item.id, 'noteId:', noteId);
             if (noteId && !isFolder) {
               onNoteDrop(noteId, item.id);
             }
