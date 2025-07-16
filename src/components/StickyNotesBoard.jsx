@@ -144,7 +144,6 @@ const StickyNotesBoard = () => {
 
     const boardToMove = findBoardById(folders, boardId);
     if (!boardToMove) return;
-
     // Add board to target folder
     const addBoardToFolder = (folderList) => {
       return folderList.map(folder => {
@@ -376,7 +375,6 @@ const StickyNotesBoard = () => {
           onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNoteDrop={handleNoteDrop}
           onBoardMove={handleBoardMove}
-          noteCounts={noteCounts}
           draggedNoteId={draggedNote?.id}
           notes={notes}
         />

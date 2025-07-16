@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -10,7 +10,19 @@ import {
   Trash2,
   ChevronsLeft,
   Search,
+  Move,
+  Edit
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import '../styles/FolderSidebar.css';
 
 const FolderSidebar = ({
@@ -28,7 +40,7 @@ const FolderSidebar = ({
   onWidthChange,
   onCollapse,
   onNoteDrop,
-  noteCounts,
+  onBoardMove,
   draggedNoteId,
   notes
 }) => {
@@ -37,7 +49,7 @@ const FolderSidebar = ({
   const [dragOverItem, setDragOverItem] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [draggedBoard, setDraggedBoard] = useState(null);
+  const draggedBoardRef = useRef(null);
 
   const handleItemEdit = (itemId, currentName) => {
     setEditingItem(itemId);
@@ -57,21 +69,18 @@ const FolderSidebar = ({
   };
 
   const handleDrop = (itemId, isFolder) => {
-    if (draggedNoteId) {
-      if (!isFolder) {
+    if (draggedNoteId && !isFolder) {
         onNoteDrop(draggedNoteId, itemId);
       }
+    else if (draggedBoardRef.current && isFolder) {
+      onBoardMove(draggedBoardRef.current.id, itemId);
     }
-    if (draggedBoard && isFolder) {
-      // Handle board drop onto folder
-      onBoardMove(draggedBoard.id, itemId);
-      setDraggedBoard(null);
-    }
+    draggedBoardRef.current = null;
     setDragOverItem(null);
   };
 
-  const handleDragEnter = (itemId) => {
-    if (draggedNoteId || draggedBoard) {
+  const handleDragEnter = (itemId, isFolder) => {
+    if ((draggedNoteId && !isFolder) || (draggedBoardRef.current && isFolder) ) {
       setDragOverItem(itemId);
     }
   };
@@ -82,15 +91,6 @@ const FolderSidebar = ({
     }
   };
 
-  const handleBoardDragStart = (board, e) => {
-    setDraggedBoard(board);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleBoardDragEnd = () => {
-    setDraggedBoard(null);
-    setDragOverItem(null);
-  };
 
   const handleResizeStart = (e) => {
     e.preventDefault();
@@ -151,6 +151,21 @@ const FolderSidebar = ({
       return acc;
     }, []);
   };
+  const getAllFolders = () => {
+    const allFolders = [];
+    const collectFolders = (items) => {
+      items.forEach(item => {
+        if (item.type === 'folder') {
+          allFolders.push(item);
+          if (item.children) {
+            collectFolders(item.children);
+          }
+        }
+      });
+    };
+    collectFolders(folders);
+    return allFolders;
+  };
   
 
   const renderItem = (item, level = 0) => {
@@ -158,20 +173,27 @@ const FolderSidebar = ({
     const isFolder = item.type === 'folder';
     const isBoard = item.type === 'board';
     const isSelected = (isFolder && selectedFolder === item.id) || (isBoard && selectedBoard === item.id);
-    const isDragOver = dragOverItem === item.id && (draggedNoteId || (draggedBoard && isFolder));
-
+    const isDragOver =
+      dragOverItem === item.id &&
+      (
+        (draggedNoteId && isBoard)||      
+        (draggedBoardRef.current && isFolder) 
+      );
     return (
       <div key={item.id} className="folder-item">
         <div
           className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOver ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onItemSelect(item.id)}
-          onMouseEnter={() => handleDragEnter(item.id)}
+          onMouseEnter={() => handleDragEnter(item.id, isFolder)}
           onMouseLeave={() => handleDragLeave(item.id)}
           onMouseUp={() => handleDrop(item.id, isFolder)}
           draggable={isBoard}
-          onDragStart={isBoard ? (e) => handleBoardDragStart(item, e) : undefined}
-          onDragEnd={isBoard ? handleBoardDragEnd : undefined}
+          onMouseDown={isBoard ? () => (draggedBoardRef.current = item) : undefined}
+          onDragEnter={() => handleDragEnter(item.id, isFolder)} // For boards
+          onDragOver={(e) => e.preventDefault()}             // Needed to allow drop
+          onDrop={() => handleDrop(item.id, isFolder)}       // For boards
+
         >
           <button
             onClick={(e) => {
@@ -226,14 +248,54 @@ const FolderSidebar = ({
                 <Plus className="folder-action-icon" />
               </button>
             )}
-            <button onClick={(e) => { e.stopPropagation(); handleItemEdit(item.id, item.name); }} className="folder-action-button" title="Rename">
-              <MoreHorizontal className="folder-action-icon" />
-            </button>
-            {item.id !== 'all-boards' && item.id !== 'quick-notes' && (
-              <button onClick={(e) => { e.stopPropagation(); onItemDelete(item.id); }} className="folder-action-button delete" title="Delete">
-                <Trash2 className="folder-action-icon" />
-              </button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button onClick={(e) => e.stopPropagation()} className="folder-action-button" title="More options">
+                  <MoreHorizontal className="folder-action-icon" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleItemEdit(item.id, item.name)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Rename
+                </DropdownMenuItem>
+                
+                {isBoard && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Move className="mr-2 h-4 w-4" />
+                        Move to
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {getAllFolders().map(folder => (
+                          <DropdownMenuItem
+                            key={folder.id}
+                            onClick={() => onBoardMove(item.id, folder.id)}
+                          >
+                            {folder.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </>
+                )}
+                
+                {item.id !== 'all-boards' && item.id !== 'quick-notes' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => onItemDelete(item.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
