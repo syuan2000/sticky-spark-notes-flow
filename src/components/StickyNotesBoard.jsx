@@ -286,39 +286,18 @@ const StickyNotesBoard = () => {
       return null;
     };
 
-    // Find all boards that will be deleted (including nested ones)
-    const getAllBoardsInItem = (item) => {
-      const boardIds = [];
-      if (item.type === 'board') {
-        boardIds.push(item.id);
-      }
-      if (item.children) {
-        item.children.forEach(child => {
-          boardIds.push(...getAllBoardsInItem(child));
-        });
-      }
-      return boardIds;
-    };
-
     const itemToDelete = findItemById(folders, itemId);
-    
+    const notesToDelete = notes.filter(note => note.boardId === itemId);
+
     if (itemToDelete) {
-      // Get all affected board IDs
-      const affectedBoardIds = getAllBoardsInItem(itemToDelete);
-      
-      // Get all notes that will be deleted
-      const notesToDelete = notes.filter(note => affectedBoardIds.includes(note.boardId));
-      
-      // Capture complete state before deletion
+      // Add to undo stack
       setUndoStack(prev => [...prev, {
         type: itemToDelete.type,
         action: 'delete',
         data: {
           item: itemToDelete,
           notes: notesToDelete,
-          previousFolderState: folders,
-          previousNotesState: notes,
-          affectedBoardIds
+          folderState: folders
         },
         timestamp: Date.now()
       }]);
@@ -336,8 +315,7 @@ const StickyNotesBoard = () => {
     setFolders(deleteItemRecursively(folders));
     
     // Remove notes from deleted boards
-    const affectedBoardIds = itemToDelete ? getAllBoardsInItem(itemToDelete) : [];
-    setNotes(notes.filter(note => !affectedBoardIds.includes(note.boardId)));
+    setNotes(notes.filter(note => note.boardId !== itemId));
     
     // Reset selection if deleted item was selected
     if (selectedBoard === itemId) {
@@ -463,26 +441,20 @@ const StickyNotesBoard = () => {
     const actionToUndo = undoStack[undoStack.length - 1]; // Get the most recent action
 
     if (actionToUndo.type === 'note' && actionToUndo.action === 'delete') {
-      // Restore deleted note with all its content
+      // Restore deleted note
       setNotes(prev => [...prev, actionToUndo.data]);
     } else if ((actionToUndo.type === 'board' || actionToUndo.type === 'folder') && actionToUndo.action === 'delete') {
-      // Restore deleted board/folder and all associated notes with their content
-      setFolders(actionToUndo.data.previousFolderState);
-      
-      // Instead of appending, we need to restore the notes state properly
-      // Remove any notes that might have been added after deletion, then add back the deleted ones
-      const currentNotesWithoutDeleted = notes.filter(note => 
-        !actionToUndo.data.affectedBoardIds.includes(note.boardId)
-      );
-      setNotes([...currentNotesWithoutDeleted, ...actionToUndo.data.notes]);
+      // Restore deleted board/folder and its notes
+      setFolders(actionToUndo.data.folderState);
+      setNotes(prev => [...prev, ...actionToUndo.data.notes]);
     }
 
     // Remove the last item from undo stack
     setUndoStack(prev => prev.slice(0, -1));
     
     toast({
-      title: "Restored successfully", 
-      description: `${actionToUndo.type === 'note' ? 'Note' : (actionToUndo.type === 'board' ? 'Board' : 'Folder')} and its content restored`,
+      title: "Restored successfully",
+      description: "Item has been restored",
     });
   };
 
