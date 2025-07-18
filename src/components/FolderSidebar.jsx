@@ -42,7 +42,9 @@ const FolderSidebar = ({
   onNoteDrop,
   onBoardMove,
   draggedNoteId,
-  notes
+  notes,
+  onDragOverBoard,
+  dragOverBoard
 }) => {
   const [editingItem, setEditingItem] = useState(null);
   const [editingName, setEditingName] = useState('');
@@ -82,12 +84,18 @@ const FolderSidebar = ({
   const handleDragEnter = (itemId, isFolder) => {
     if ((draggedNoteId && !isFolder) || (draggedBoardRef.current && isFolder) ) {
       setDragOverItem(itemId);
+      if (!isFolder && onDragOverBoard) {
+        onDragOverBoard(itemId);
+      }
     }
   };
 
   const handleDragLeave = (itemId) => {
     if (dragOverItem === itemId) {
       setDragOverItem(null);
+      if (onDragOverBoard) {
+        onDragOverBoard(null);
+      }
     }
   };
 
@@ -179,10 +187,11 @@ const FolderSidebar = ({
         (draggedNoteId && isBoard)||      
         (draggedBoardRef.current && isFolder) 
       );
+    const isGlobalDragOver = dragOverBoard === item.id;
     return (
       <div key={item.id} className="folder-item">
         <div
-          className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOver ? 'drag-over' : ''}`}
+          className={`folder-row ${isSelected ? 'selected' : ''} ${isDragOver || isGlobalDragOver ? 'drag-over' : ''}`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
           onClick={() => onItemSelect(item.id)}
           onMouseEnter={() => handleDragEnter(item.id, isFolder)}

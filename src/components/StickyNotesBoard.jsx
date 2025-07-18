@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Undo2 } from 'lucide-react';
 import StickyNote from './StickyNote';
 import ColorPicker from './ColorPicker';
 import FolderSidebar from './FolderSidebar';
+import { useToast } from '../hooks/use-toast';
+import { Toaster } from './ui/toaster';
 import '../styles/StickyNotesBoard.css';
 
 const StickyNotesBoard = () => {
   const [notes, setNotes] = useState([]);
   const [selectedColor, setSelectedColor] = useState('bg-yellow-200');
+  const { toast } = useToast();
   
   // New structure: folders contain boards, boards contain notes
   const [folders, setFolders] = useState([
@@ -27,6 +30,10 @@ const StickyNotesBoard = () => {
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [draggedNote, setDraggedNote] = useState(null);
+  const [dragOverBoard, setDragOverBoard] = useState(null);
+  
+  // Undo functionality
+  const [undoStack, setUndoStack] = useState([]);
 
   const getNoteCountForBoard = (boardId) => {
     return notes.filter(note => note.boardId === boardId).length;
@@ -75,7 +82,33 @@ const StickyNotesBoard = () => {
   };
 
   const deleteNote = (id) => {
-    setNotes(notes.filter(note => note.id !== id));
+    const noteToDelete = notes.find(note => note.id === id);
+    if (noteToDelete) {
+      // Add to undo stack
+      setUndoStack(prev => [...prev, {
+        type: 'note',
+        action: 'delete',
+        data: noteToDelete,
+        timestamp: Date.now()
+      }]);
+      
+      setNotes(notes.filter(note => note.id !== id));
+      
+      // Show undo toast
+      toast({
+        title: "Note deleted",
+        description: "Click undo to restore the note",
+        action: (
+          <button
+            onClick={() => undoAction(undoStack.length)}
+            className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          >
+            <Undo2 className="h-4 w-4 mr-1" />
+            Undo
+          </button>
+        ),
+      });
+    }
   };
 
   const moveNote = (id, pos) => {
@@ -111,6 +144,7 @@ const StickyNotesBoard = () => {
     // Only allow dropping on boards, not folders
     if (!targetItem || targetItem.type !== 'board') {
       setDraggedNote(null);
+      setDragOverBoard(null);
       return;
     }
 
@@ -119,6 +153,7 @@ const StickyNotesBoard = () => {
       { ...note, boardId: targetId } : note
     ));
     setDraggedNote(null);
+    setDragOverBoard(null);
   };
 
   const handleBoardMove = (boardId, targetFolderId) => {
@@ -239,6 +274,35 @@ const StickyNotesBoard = () => {
   };
 
   const deleteItem = (itemId) => {
+    // Find the item being deleted for undo functionality
+    const findItemById = (items, id) => {
+      for (const item of items) {
+        if (item.id === id) return item;
+        if (item.children) {
+          const found = findItemById(item.children, id);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const itemToDelete = findItemById(folders, itemId);
+    const notesToDelete = notes.filter(note => note.boardId === itemId);
+
+    if (itemToDelete) {
+      // Add to undo stack
+      setUndoStack(prev => [...prev, {
+        type: itemToDelete.type,
+        action: 'delete',
+        data: {
+          item: itemToDelete,
+          notes: notesToDelete,
+          folderState: folders
+        },
+        timestamp: Date.now()
+      }]);
+    }
+
     const deleteItemRecursively = (folderList) => {
       return folderList
         .filter(item => item.id !== itemId)
@@ -261,6 +325,23 @@ const StickyNotesBoard = () => {
     if (selectedFolder === itemId) {
       setSelectedFolder(null);
       setSelectedBoard('quick-notes');
+    }
+
+    // Show undo toast
+    if (itemToDelete) {
+      toast({
+        title: `${itemToDelete.type === 'board' ? 'Board' : 'Folder'} deleted`,
+        description: `Click undo to restore "${itemToDelete.name}"`,
+        action: (
+          <button
+            onClick={() => undoAction(undoStack.length)}
+            className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          >
+            <Undo2 className="h-4 w-4 mr-1" />
+            Undo
+          </button>
+        ),
+      });
     }
   };
 
@@ -354,6 +435,28 @@ const StickyNotesBoard = () => {
     return 'Folder';
   };
 
+  const undoAction = (stackIndex) => {
+    const actionToUndo = undoStack[stackIndex];
+    if (!actionToUndo) return;
+
+    if (actionToUndo.type === 'note' && actionToUndo.action === 'delete') {
+      // Restore deleted note
+      setNotes(prev => [...prev, actionToUndo.data]);
+    } else if ((actionToUndo.type === 'board' || actionToUndo.type === 'folder') && actionToUndo.action === 'delete') {
+      // Restore deleted board/folder and its notes
+      setFolders(actionToUndo.data.folderState);
+      setNotes(prev => [...prev, ...actionToUndo.data.notes]);
+    }
+
+    // Remove from undo stack
+    setUndoStack(prev => prev.filter((_, index) => index !== stackIndex));
+    
+    toast({
+      title: "Restored successfully",
+      description: "Item has been restored",
+    });
+  };
+
   const isEmptyFolder = selectedFolder && !selectedBoard;
 
   return (
@@ -377,6 +480,8 @@ const StickyNotesBoard = () => {
           onBoardMove={handleBoardMove}
           draggedNoteId={draggedNote?.id}
           notes={notes}
+          onDragOverBoard={setDragOverBoard}
+          dragOverBoard={dragOverBoard}
         />
       </div>
 
@@ -461,6 +566,7 @@ const StickyNotesBoard = () => {
 
         <div className="grid-pattern" />
       </div>
+      <Toaster />
     </div>
   );
 };

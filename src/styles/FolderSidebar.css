@@ -117,6 +117,8 @@
   background-color: #bfdbfe;
   border: 2px dashed #2563eb;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px) scale(1.02);
+  animation: pulse-glow 1.5s ease-in-out infinite alternate;
 }
 
 .all-notes-icon {
@@ -168,6 +170,17 @@
   background-color: #bfdbfe;
   border: 2px dashed #2563eb;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px) scale(1.02);
+  animation: pulse-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2), 0 0 0 0 rgba(37, 99, 235, 0.7);
+  }
+  100% {
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4), 0 0 0 4px rgba(37, 99, 235, 0);
+  }
 }
 
 .folder-toggle {
