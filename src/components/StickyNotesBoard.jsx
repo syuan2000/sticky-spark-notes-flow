@@ -100,7 +100,7 @@ const StickyNotesBoard = () => {
         description: "Click undo to restore the note",
         action: (
           <button
-            onClick={() => undoAction(undoStack.length)}
+            onClick={undoAction}
             className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
           >
             <Undo2 className="h-4 w-4 mr-1" />
@@ -329,19 +329,19 @@ const StickyNotesBoard = () => {
 
     // Show undo toast
     if (itemToDelete) {
-      toast({
-        title: `${itemToDelete.type === 'board' ? 'Board' : 'Folder'} deleted`,
-        description: `Click undo to restore "${itemToDelete.name}"`,
-        action: (
-          <button
-            onClick={() => undoAction(undoStack.length)}
-            className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-          >
-            <Undo2 className="h-4 w-4 mr-1" />
-            Undo
-          </button>
-        ),
-      });
+        toast({
+          title: `${itemToDelete.type === 'board' ? 'Board' : 'Folder'} deleted`,
+          description: `Click undo to restore "${itemToDelete.name}"`,
+          action: (
+            <button
+              onClick={undoAction}
+              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+            >
+              <Undo2 className="h-4 w-4 mr-1" />
+              Undo
+            </button>
+          ),
+        });
     }
   };
 
@@ -435,9 +435,10 @@ const StickyNotesBoard = () => {
     return 'Folder';
   };
 
-  const undoAction = (stackIndex) => {
-    const actionToUndo = undoStack[stackIndex];
-    if (!actionToUndo) return;
+  const undoAction = () => {
+    if (undoStack.length === 0) return;
+    
+    const actionToUndo = undoStack[undoStack.length - 1]; // Get the most recent action
 
     if (actionToUndo.type === 'note' && actionToUndo.action === 'delete') {
       // Restore deleted note
@@ -448,8 +449,8 @@ const StickyNotesBoard = () => {
       setNotes(prev => [...prev, ...actionToUndo.data.notes]);
     }
 
-    // Remove from undo stack
-    setUndoStack(prev => prev.filter((_, index) => index !== stackIndex));
+    // Remove the last item from undo stack
+    setUndoStack(prev => prev.slice(0, -1));
     
     toast({
       title: "Restored successfully",
