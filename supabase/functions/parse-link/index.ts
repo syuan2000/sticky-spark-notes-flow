@@ -118,6 +118,55 @@ Output format:
   }
 });
 
+function getVideoThumbnail(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+
+    // YouTube
+    if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+      let videoId = null;
+      
+      if (hostname.includes('youtu.be')) {
+        videoId = urlObj.pathname.slice(1).split('?')[0];
+      } else if (urlObj.searchParams.has('v')) {
+        videoId = urlObj.searchParams.get('v');
+      } else if (urlObj.pathname.includes('/shorts/')) {
+        videoId = urlObj.pathname.split('/shorts/')[1].split('?')[0];
+      }
+      
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+      }
+    }
+
+    // TikTok - TikTok thumbnails require scraping the page
+    if (hostname.includes('tiktok.com')) {
+      // Will be extracted from og:image in scrapeMetadata
+      return null;
+    }
+
+    // Instagram - Will be extracted from og:image
+    if (hostname.includes('instagram.com')) {
+      return null;
+    }
+
+    // Vimeo
+    if (hostname.includes('vimeo.com')) {
+      const videoId = urlObj.pathname.split('/')[1];
+      if (videoId) {
+        // Note: Vimeo thumbnails require an API call, so we'll rely on og:image
+        return null;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error extracting video thumbnail:', error);
+    return null;
+  }
+}
+
 async function scrapeMetadata(url: string) {
   try {
     const response = await fetch(url, {
@@ -161,10 +210,16 @@ async function scrapeMetadata(url: string) {
                        getMetaContent('description') ||
                        '';
 
-    // Get image
-    const image = getMetaContent('og:image') || 
-                 getMetaContent('twitter:image') ||
-                 null;
+    // Get image - try multiple sources
+    let image = getMetaContent('og:image') || 
+                getMetaContent('twitter:image') ||
+                getMetaContent('og:image:url') ||
+                getMetaContent('twitter:image:src');
+
+    // If no image found, try to get video thumbnail
+    if (!image) {
+      image = getVideoThumbnail(url);
+    }
 
     // Get site name
     const siteName = getMetaContent('og:site_name') || 
@@ -178,10 +233,14 @@ async function scrapeMetadata(url: string) {
     };
   } catch (error) {
     console.error('Error scraping metadata:', error);
+    
+    // Try to get thumbnail even if scraping fails
+    const fallbackImage = getVideoThumbnail(url);
+    
     return {
       title: 'Failed to load',
       description: 'Could not fetch page metadata',
-      image: null,
+      image: fallbackImage,
       siteName: new URL(url).hostname,
     };
   }
