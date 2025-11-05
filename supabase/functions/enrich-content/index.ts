@@ -1,3 +1,4 @@
+// supabase/functions/enrich-content/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -18,81 +19,47 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `You are an assistant that provides concise, structured enrichment data for short-form media (Instagram, TikTok, YouTube, blog, etc.).
-Your goal is to output a compact JSON object (or array of objects if multiple items are mentioned) with the most relevant, factual highlights (max 5 per item).
+    // Category-specific prompts
+    const prompts = {
+      place: `Extract structured information about this place: "${title}" (${url})
 
-Expected Output Schema for SINGLE item:
-{
-  "name": "",
-  "category": "",
-  "address": "",
-  "map_url": "",
-  "hours": "",
-  "key_info": ["insight 1", "insight 2", "insight 3", "insight 4", "insight 5"]
-}
+Return ONLY this format (use "Not available" if info not found):
+**Address:** [full address]
+**Hours:** [operating hours]
+**Features:** [key highlights in 2-3 bullet points]`,
 
-Expected Output Schema for MULTIPLE items:
-{
-  "items": [
-    { "name": "", "category": "", "address": "", "map_url": "", "hours": "", "key_info": [...] },
-    { "name": "", "category": "", "address": "", "map_url": "", "hours": "", "key_info": [...] }
-  ]
-}
+      recipe: `Extract structured information about this recipe: "${title}" (${url})
 
-Category-Specific Guidelines:
+Return ONLY this format:
+**Prep Time:** [time]
+**Cook Time:** [time]
+**Servings:** [number]
+**Key Ingredients:** [main ingredients]
+**Steps:** [brief overview]`,
 
-1️⃣ Place (café, restaurant, shop, travel spot)
-Return at most 5 of these if available:
-- Signature / hype item
-- Current seasonal or limited menu item
-- Work-friendliness (Wi-Fi, outlets, time limit)
-- Crowd or queue pattern
-- Parking situation
-(Always include address + hours + map URL if known)
+      outfit: `Extract structured information about this outfit/product: "${title}" (${url})
 
-2️⃣ Recipe / Food Idea
-- Key ingredients
-- time to prep + cook
-- Serving suggestion
-- Nutrition or dietary tag
+Return ONLY this format:
+**Price:** [price or range]
+**Where to Buy:** [store/link]
+**Sizes:** [available sizes]
+**Style Notes:** [2-3 key points]`,
 
-3️⃣ Outfit / Product
-- Core clothing / item names
-- Brand or store
-- Style keywords (season, occasion, aesthetic)
-- Trending element (color, fit, material)
-- Price range / availability note
+      tool: `Extract structured information about this tool/software: "${title}" (${url})
 
-4️⃣ Makeup / Beauty
-- Product name & brand
-- Shade or variant used
-- Skin type or finish (glowy, matte, dewy)
-- Application tip / tool
-- Dupe or alternative suggestion
+Return ONLY this format:
+**Pricing:** [free/paid/subscription]
+**Platform:** [web/iOS/Android/desktop]
+**Key Features:** [3-4 main features]
+**Best For:** [target audience]
+**Alternatives:** [similar tools]`,
 
-5️⃣ Tool / Gadget
-- Core function or use case
-- Key features / specs
-- Pros or unique advantage
-- Common alternatives / price tier
-- Real-life use example
+      other: `Extract key structured information about: "${title}" (${url})
 
-6️⃣ Other / Inspiration
-Summarize 3–5 main ideas or themes only.
+Provide the most relevant details in a clean, organized format.`
+    };
 
-Style Rules:
-- Be factual and concise
-- Keep values ≤ 100 characters each
-- Use null for unknown fields
-- Generate only the JSON object; no markdown or explanation
-- If multiple places/items are mentioned, return them in an "items" array`;
-
-    const userPrompt = `Extract enrichment data from this ${type} content:
-Title: "${title}"
-URL: ${url}
-
-If there are multiple places/items/products mentioned, return them all in an "items" array.
-Return ONLY valid JSON, no markdown.`;
+    const prompt = prompts[type] || prompts.other;
 
     const llmResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -105,15 +72,15 @@ Return ONLY valid JSON, no markdown.`;
         messages: [
           {
             role: 'system',
-            content: systemPrompt
+            content: 'You are a concise information extractor. Provide structured, factual data only. No fluff or introductions.'
           },
           {
             role: 'user',
-            content: userPrompt
+            content: prompt
           }
         ],
-        temperature: 0.1,
-        max_tokens: 1000
+        temperature: 0.2,
+        max_tokens: 500
       }),
     });
 
@@ -122,26 +89,11 @@ Return ONLY valid JSON, no markdown.`;
     }
 
     const llmData = await llmResponse.json();
-    let content = llmData.choices?.[0]?.message?.content || '{}';
-    
-    // Clean markdown code blocks if present
-    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
-    // Parse JSON
-    let structuredData;
-    try {
-      structuredData = JSON.parse(content);
-    } catch (e) {
-      console.error('Failed to parse JSON:', content);
-      throw new Error('Failed to parse enriched data');
-    }
+    const enrichedContent = llmData.choices?.[0]?.message?.content || 'No additional information available';
 
     return new Response(JSON.stringify({
       success: true,
-      data: { 
-        enrichedContent: structuredData,
-        type: type
-      }
+      data: { enrichedContent }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
