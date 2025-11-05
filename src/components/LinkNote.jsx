@@ -225,13 +225,12 @@ const LinkNote = ({
             {getTypeIcon(linkData.classification.type)}
             <span>{linkData.classification.type}</span>
           </div>
-          
           <button
             onClick={() => window.open(linkData.url, '_blank', 'noopener,noreferrer')}
             className="link-note-source-button"
           >
             <SourceIcon className="w-4 h-4" />
-            <span>Sources</span>
+            <span>Source</span>
           </button>
         </div>
 
