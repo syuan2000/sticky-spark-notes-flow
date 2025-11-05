@@ -225,14 +225,14 @@ const LinkNote = ({
             {getTypeIcon(linkData.classification.type)}
             <span>{linkData.classification.type}</span>
           </div>
-          <a 
-            href={linkData.url} 
-            target="_blank" 
-            rel="noopener noreferrer nofollow"
-            className="link-note-title"
+          
+          <button
+            onClick={() => window.open(linkData.url, '_blank', 'noopener,noreferrer')}
+            className="link-note-source-button"
           >
-            {linkData.metadata.title}
-          </a>
+            <SourceIcon className="w-4 h-4" />
+            <span>Sources</span>
+          </button>
         </div>
 
         <p className="link-note-summary">{linkData.classification.summary}</p>
@@ -273,14 +273,6 @@ const LinkNote = ({
               {getActionText(linkData.classification.type)}
             </>
           )}
-        </button>
-
-        <button
-          onClick={() => window.open(linkData.url, '_blank', 'noopener,noreferrer')}
-          className="link-note-source-button"
-        >
-          <SourceIcon className="w-4 h-4" />
-          <span>{sourceName}</span>
         </button>
       </div>
 
