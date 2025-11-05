@@ -1,0 +1,84 @@
+.new-note-dialog {
+  max-width: 500px;
+}
+
+.new-note-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.new-note-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.new-note-option:hover {
+  border-color: #9ca3af;
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.new-note-option svg {
+  color: #6366f1;
+}
+
+.new-note-option-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.new-note-option-desc {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.new-note-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.new-note-confirm p {
+  font-size: 1rem;
+  color: #374151;
+  text-align: center;
+}
+
+.new-note-link-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.new-note-link-input-wrapper {
+  width: 100%;
+}
+
+.new-note-link-input {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.new-note-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.new-note-actions button {
+  flex: 1;
+}

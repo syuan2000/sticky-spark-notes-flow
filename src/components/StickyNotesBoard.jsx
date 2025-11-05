@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { Plus, Undo2 } from 'lucide-react';
 import StickyNote from './StickyNote';
+import LinkNote from './LinkNote';
 import ColorPicker from './ColorPicker';
 import FolderSidebar from './FolderSidebar';
+import NewNoteDialog from './NewNoteDialog';
 import { useToast } from '../hooks/use-toast';
 import { Toaster } from './ui/toaster';
+import { supabase } from '@/integrations/supabase/client';
 import '../styles/StickyNotesBoard.css';
 
 const StickyNotesBoard = () => {
   const [notes, setNotes] = useState([]);
   const [selectedColor, setSelectedColor] = useState('bg-yellow-200');
+  const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
+  const [isParsingLink, setIsParsingLink] = useState(false);
   const { toast } = useToast();
   
   // New structure: folders contain boards, boards contain notes
@@ -63,6 +68,7 @@ const StickyNotesBoard = () => {
     const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
     const newNote = {
       id: Date.now().toString(),
+      type: 'note',
       content: '',
       color: selectedColor,
       position: {
@@ -75,10 +81,69 @@ const StickyNotesBoard = () => {
     setNotes([...notes, newNote]);
   };
 
+  const createLinkNote = async (url) => {
+    if (!selectedBoard) return;
+
+    setIsParsingLink(true);
+    toast({
+      title: "Parsing link...",
+      description: "Analyzing content with AI",
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-link', {
+        body: { url }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to parse link');
+      }
+
+      const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
+      const newNote = {
+        id: Date.now().toString(),
+        type: 'link',
+        linkData: data.data,
+        color: selectedColor,
+        position: {
+          x: Math.max(currentSidebarWidth + 20, Math.random() * (window.innerWidth - 400 - currentSidebarWidth) + currentSidebarWidth),
+          y: Math.random() * (window.innerHeight - 300) + 100,
+        },
+        size: { width: 280, height: 400 },
+        boardId: selectedBoard,
+      };
+
+      setNotes([...notes, newNote]);
+      
+      toast({
+        title: "Link parsed successfully",
+        description: `Created ${data.data.classification.type} note`,
+      });
+    } catch (error) {
+      console.error('Error parsing link:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to parse link",
+        variant: "destructive",
+      });
+    } finally {
+      setIsParsingLink(false);
+    }
+  };
+
   const updateNote = (id, content) => {
-    setNotes(notes.map(note => 
-      note.id === id ? { ...note, content } : note
-    ));
+    setNotes(notes.map(note => {
+      if (note.id === id) {
+        // Handle both regular notes and link notes
+        if (note.type === 'link' && typeof content === 'object') {
+          return { ...note, linkData: content };
+        }
+        return { ...note, content };
+      }
+      return note;
+    }));
   };
 
   const deleteNote = (id) => {
@@ -507,8 +572,9 @@ const StickyNotesBoard = () => {
                 />
                 
                 <button
-                  onClick={createNote}
+                  onClick={() => setShowNewNoteDialog(true)}
                   className="new-note-button"
+                  disabled={isParsingLink}
                 >
                   <Plus className="new-note-icon" />
                   New Note
@@ -542,8 +608,9 @@ const StickyNotesBoard = () => {
                 Create your first sticky note and start brainstorming. Perfect for travel plans, restaurant lists, or your next big idea!
               </p>
               <button
-                onClick={createNote}
+                onClick={() => setShowNewNoteDialog(true)}
                 className="create-first-note-button"
+                disabled={isParsingLink}
               >
                 <Plus className="create-first-note-icon" />
                 Create Your First Note
@@ -551,22 +618,43 @@ const StickyNotesBoard = () => {
             </div>
           ) : (
             filteredNotes.map((note) => (
-              <StickyNote
-                key={note.id}
-                {...note}
-                onUpdate={updateNote}
-                onDelete={deleteNote}
-                onMove={moveNote}
-                onResize={resizeNote}
-                onStartDrag={() => setDraggedNote(note)}
-                onEndDrag={() => setDraggedNote(null)}
-              />
+              note.type === 'link' ? (
+                <LinkNote
+                  key={note.id}
+                  {...note}
+                  onUpdate={updateNote}
+                  onDelete={deleteNote}
+                  onMove={moveNote}
+                  onResize={resizeNote}
+                  onStartDrag={() => setDraggedNote(note)}
+                  onEndDrag={() => setDraggedNote(null)}
+                />
+              ) : (
+                <StickyNote
+                  key={note.id}
+                  {...note}
+                  onUpdate={updateNote}
+                  onDelete={deleteNote}
+                  onMove={moveNote}
+                  onResize={resizeNote}
+                  onStartDrag={() => setDraggedNote(note)}
+                  onEndDrag={() => setDraggedNote(null)}
+                />
+              )
             ))
           )}
         </div>
 
         <div className="grid-pattern" />
       </div>
+      
+      <NewNoteDialog
+        open={showNewNoteDialog}
+        onClose={() => setShowNewNoteDialog(false)}
+        onCreateNote={createNote}
+        onCreateLink={createLinkNote}
+      />
+      
       <Toaster />
     </div>
   );

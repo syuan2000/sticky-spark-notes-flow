@@ -1,0 +1,7 @@
+project_id = "waxtpurdnzhhqwygbosc"
+
+[functions.parse-link]
+verify_jwt = false
+
+[functions.enrich-content]
+verify_jwt = false
