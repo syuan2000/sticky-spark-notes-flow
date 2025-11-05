@@ -44,20 +44,32 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Classify this content and output JSON:
-Title: ${metadata.title}
-Description: ${metadata.description}
+            content: `Classify this link into one of these categories:
+
+**place** = restaurants, cafes, stores, venues, tourist spots, buildings, locations
+**recipe** = cooking instructions, food tutorials, meal prep guides
+**outfit** = fashion, clothing items, style guides, shopping links for wearables
+**tool** = software, apps, productivity tools, services, platforms, utilities
+**other** = everything else (articles, videos, social posts, blogs, news)
+
+Title: "${metadata.title}"
+Description: "${metadata.description}"
 URL: ${url}
 
-Output format:
+If title/description are generic (like "Instagram" or "YouTube"), infer from the URL domain:
+- instagram.com/tiktok.com reels/posts → usually "other"
+- Maps/reviews → "place"
+- Shopping sites → "outfit" or "tool"
+
+Return JSON:
 {
   "type": "place" | "recipe" | "outfit" | "tool" | "other",
-  "summary": "<max 50 words>",
+  "summary": "<clear 1-sentence description, max 50 words>",
   "tags": ["tag1", "tag2", "tag3"]
 }`
           }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 300
       }),
     });
