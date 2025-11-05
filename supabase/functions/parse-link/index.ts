@@ -118,57 +118,64 @@ Output format:
   }
 });
 
-async function getVideoThumbnail(url: string): Promise<string | null> {
+async function getVideoThumbnail(url: string): Promise<{thumbnail: string | null, title: string | null}> {
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
 
     // YouTube oEmbed
     if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-      const response = await fetch(oembedUrl);
-      if (response.ok) {
-        const data = await response.json();
-        return data.thumbnail_url;
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+        const response = await fetch(oembedUrl);
+        if (response.ok) {
+          const data = await response.json();
+          return { 
+            thumbnail: data.thumbnail_url,
+            title: data.title
+          };
+        }
+      } catch (e) {
+        console.error('YouTube oEmbed failed:', e);
       }
     }
 
     // TikTok oEmbed
     if (hostname.includes('tiktok.com')) {
-      const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
-      const response = await fetch(oembedUrl);
-      if (response.ok) {
-        const data = await response.json();
-        return data.thumbnail_url;
+      try {
+        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+        const response = await fetch(oembedUrl);
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            thumbnail: data.thumbnail_url,
+            title: data.title
+          };
+        }
+      } catch (e) {
+        console.error('TikTok oEmbed failed:', e);
       }
     }
 
-    // Instagram oEmbed
-    if (hostname.includes('instagram.com')) {
-      const oembedUrl = `https://graph.facebook.com/v12.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=YOUR_ACCESS_TOKEN`;
-      // Note: Instagram requires an access token
-      // For now, rely on og:image from scraping
-      return null;
-    }
-
-    return null;
+    return { thumbnail: null, title: null };
   } catch (error) {
     console.error('Error fetching video thumbnail:', error);
-    return null;
+    return { thumbnail: null, title: null };
   }
 }
 
 async function scrapeMetadata(url: string) {
+  // First try oEmbed for video platforms
+  const videoData = await getVideoThumbnail(url);
+  
   try {
-    // First try to get video thumbnail via oEmbed
-    const videoThumbnail = await getVideoThumbnail(url);
-
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-      }
+      },
+      signal: AbortSignal.timeout(5000) // 5 second timeout
     });
 
     if (!response.ok) {
@@ -193,22 +200,23 @@ async function scrapeMetadata(url: string) {
     };
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const title = getMetaContent('og:title') || 
+    const scrapedTitle = getMetaContent('og:title') || 
                   getMetaContent('twitter:title') || 
-                  (titleMatch ? titleMatch[1] : null) ||
-                  'Untitled';
+                  (titleMatch ? titleMatch[1] : null);
+
+    const title = videoData.title || scrapedTitle || 'Untitled';
 
     const description = getMetaContent('og:description') || 
                        getMetaContent('twitter:description') || 
                        getMetaContent('description') ||
                        '';
 
-    // Prioritize video thumbnail from oEmbed, then fall back to meta tags
-    const image = videoThumbnail ||
-                  getMetaContent('og:image') || 
+    const scrapedImage = getMetaContent('og:image') || 
                   getMetaContent('twitter:image') ||
                   getMetaContent('og:image:url') ||
                   getMetaContent('twitter:image:src');
+
+    const image = videoData.thumbnail || scrapedImage;
 
     const siteName = getMetaContent('og:site_name') || 
                     new URL(url).hostname;
@@ -220,16 +228,14 @@ async function scrapeMetadata(url: string) {
       siteName,
     };
   } catch (error) {
-    console.error('Error scraping metadata:', error);
+    console.error('Error scraping metadata, using fallback:', error);
     
-    const fallbackThumbnail = await getVideoThumbnail(url);
-    
+    // Fallback to oEmbed data or basic info
     return {
-      title: 'Failed to load',
-      description: 'Could not fetch page metadata',
-      image: fallbackThumbnail,
+      title: videoData.title || 'Link',
+      description: '',
+      image: videoData.thumbnail,
       siteName: new URL(url).hostname,
     };
   }
 }
-
