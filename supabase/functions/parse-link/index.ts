@@ -118,60 +118,56 @@ Output format:
   }
 });
 
-function getVideoThumbnail(url: string): string | null {
+async function getVideoThumbnail(url: string): Promise<string | null> {
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
 
-    // YouTube
+    // YouTube oEmbed
     if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-      let videoId = null;
-      
-      if (hostname.includes('youtu.be')) {
-        videoId = urlObj.pathname.slice(1).split('?')[0];
-      } else if (urlObj.searchParams.has('v')) {
-        videoId = urlObj.searchParams.get('v');
-      } else if (urlObj.pathname.includes('/shorts/')) {
-        videoId = urlObj.pathname.split('/shorts/')[1].split('?')[0];
-      }
-      
-      if (videoId) {
-        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      const response = await fetch(oembedUrl);
+      if (response.ok) {
+        const data = await response.json();
+        return data.thumbnail_url;
       }
     }
 
-    // TikTok - TikTok thumbnails require scraping the page
+    // TikTok oEmbed
     if (hostname.includes('tiktok.com')) {
-      // Will be extracted from og:image in scrapeMetadata
-      return null;
-    }
-
-    // Instagram - Will be extracted from og:image
-    if (hostname.includes('instagram.com')) {
-      return null;
-    }
-
-    // Vimeo
-    if (hostname.includes('vimeo.com')) {
-      const videoId = urlObj.pathname.split('/')[1];
-      if (videoId) {
-        // Note: Vimeo thumbnails require an API call, so we'll rely on og:image
-        return null;
+      const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+      const response = await fetch(oembedUrl);
+      if (response.ok) {
+        const data = await response.json();
+        return data.thumbnail_url;
       }
+    }
+
+    // Instagram oEmbed
+    if (hostname.includes('instagram.com')) {
+      const oembedUrl = `https://graph.facebook.com/v12.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=YOUR_ACCESS_TOKEN`;
+      // Note: Instagram requires an access token
+      // For now, rely on og:image from scraping
+      return null;
     }
 
     return null;
   } catch (error) {
-    console.error('Error extracting video thumbnail:', error);
+    console.error('Error fetching video thumbnail:', error);
     return null;
   }
 }
 
 async function scrapeMetadata(url: string) {
   try {
+    // First try to get video thumbnail via oEmbed
+    const videoThumbnail = await getVideoThumbnail(url);
+
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; LinkParser/1.0)'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
       }
     });
 
@@ -181,7 +177,6 @@ async function scrapeMetadata(url: string) {
 
     const html = await response.text();
     
-    // Extract meta tags
     const getMetaContent = (name: string): string | null => {
       const patterns = [
         new RegExp(`<meta[^>]*property=["']${name}["'][^>]*content=["']([^"']*)["']`, 'i'),
@@ -197,31 +192,24 @@ async function scrapeMetadata(url: string) {
       return null;
     };
 
-    // Get title
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = getMetaContent('og:title') || 
                   getMetaContent('twitter:title') || 
                   (titleMatch ? titleMatch[1] : null) ||
                   'Untitled';
 
-    // Get description
     const description = getMetaContent('og:description') || 
                        getMetaContent('twitter:description') || 
                        getMetaContent('description') ||
                        '';
 
-    // Get image - try multiple sources
-    let image = getMetaContent('og:image') || 
-                getMetaContent('twitter:image') ||
-                getMetaContent('og:image:url') ||
-                getMetaContent('twitter:image:src');
+    // Prioritize video thumbnail from oEmbed, then fall back to meta tags
+    const image = videoThumbnail ||
+                  getMetaContent('og:image') || 
+                  getMetaContent('twitter:image') ||
+                  getMetaContent('og:image:url') ||
+                  getMetaContent('twitter:image:src');
 
-    // If no image found, try to get video thumbnail
-    if (!image) {
-      image = getVideoThumbnail(url);
-    }
-
-    // Get site name
     const siteName = getMetaContent('og:site_name') || 
                     new URL(url).hostname;
 
@@ -234,14 +222,14 @@ async function scrapeMetadata(url: string) {
   } catch (error) {
     console.error('Error scraping metadata:', error);
     
-    // Try to get thumbnail even if scraping fails
-    const fallbackImage = getVideoThumbnail(url);
+    const fallbackThumbnail = await getVideoThumbnail(url);
     
     return {
       title: 'Failed to load',
       description: 'Could not fetch page metadata',
-      image: fallbackImage,
+      image: fallbackThumbnail,
       siteName: new URL(url).hostname,
     };
   }
 }
+
