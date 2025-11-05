@@ -6,7 +6,7 @@ import { Input } from './ui/input';
 import '../styles/NewNoteDialog.css';
 
 const NewNoteDialog = ({ open, onClose, onCreateNote, onCreateLink }) => {
-  const [mode, setMode] = useState(null); // null, 'note', or 'link'
+  const [mode, setMode] = useState(null); // null or 'link'
   const [linkUrl, setLinkUrl] = useState('');
 
   const handleClose = () => {
@@ -43,7 +43,7 @@ const NewNoteDialog = ({ open, onClose, onCreateNote, onCreateLink }) => {
         {!mode ? (
           <div className="new-note-options">
             <button
-              onClick={() => setMode('note')}
+              onClick={handleCreateNote}
               className="new-note-option"
             >
               <NoteIcon className="w-8 h-8" />
@@ -59,19 +59,6 @@ const NewNoteDialog = ({ open, onClose, onCreateNote, onCreateLink }) => {
               <span className="new-note-option-title">Link</span>
               <span className="new-note-option-desc">Parse and save a link</span>
             </button>
-          </div>
-        ) : mode === 'note' ? (
-          <div className="new-note-confirm">
-            <p>Create a new blank sticky note?</p>
-            <div className="new-note-actions">
-              <Button variant="outline" onClick={() => setMode(null)}>
-                Back
-              </Button>
-              <Button onClick={handleCreateNote}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Note
-              </Button>
-            </div>
           </div>
         ) : (
           <div className="new-note-link-form">
