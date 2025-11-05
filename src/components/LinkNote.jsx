@@ -104,9 +104,10 @@ const LinkNote = ({
       setIsEnriching(false);
     }
   };
+
   const getProxiedImage = (imageUrl) => {
     if (!imageUrl) return null;
-      const cleanUrl = imageUrl.replace(/&amp;/g, '&');
+    const cleanUrl = imageUrl.replace(/&amp;/g, '&');
     
     // Check if it's an Instagram/Facebook CDN URL
     if (cleanUrl.includes('cdninstagram.com') || cleanUrl.includes('fbcdn.net')) {
@@ -163,8 +164,20 @@ const LinkNote = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleMouseDown = (e) => {
-    if (isResizing || e.target.closest('button') || e.target.closest('a')) return;
+  const handleHeaderMouseDown = (e) => {
+    // Don't start dragging if user is selecting text
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      return;
+    }
+    
+    // Don't drag if clicking on buttons
+    if (e.target.closest('button')) {
+      return;
+    }
+    
+    if (isResizing) return;
+    
     e.preventDefault();
     setIsDragging(true);
     onStartDrag?.();
@@ -210,13 +223,17 @@ const LinkNote = ({
     <div
       className={`sticky-note link-note ${getBackgroundColor() ? '' : color} ${isDragging ? 'dragging' : ''}`}
       style={noteStyle}
-      onMouseDown={!isResizing ? handleMouseDown : undefined}
     >
-      <div className="sticky-note-header">
+      <div 
+        className="sticky-note-header"
+        onMouseDown={handleHeaderMouseDown}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+      >
         <GripVertical className="grip-icon" />
         <button
           onClick={() => onDelete(id)}
           className="delete-note-button"
+          onMouseDown={(e) => e.stopPropagation()}
         >
           <X className="delete-note-icon" />
         </button>
@@ -228,6 +245,7 @@ const LinkNote = ({
             src={getProxiedImage(linkData.metadata.image)} 
             alt={linkData.metadata.title}
             className="link-note-image"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
           />
         )}
         

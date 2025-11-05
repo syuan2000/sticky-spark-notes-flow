@@ -177,3 +177,32 @@
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+/* Make header draggable, content selectable */
+.sticky-note-header {
+  cursor: grab;
+  user-select: none;
+}
+
+.sticky-note-header:active {
+  cursor: grabbing;
+}
+
+.link-note-content {
+  user-select: text;
+  cursor: default;
+}
+
+.link-note-content * {
+  user-select: text;
+}
+
+.link-note-content button,
+.link-note-content a,
+.link-note-content img {
+  cursor: pointer;
+  user-select: none;
+}
+
+.link-note-tag {
+  user-select: none; /* Tags shouldn't be selectable */
+}
