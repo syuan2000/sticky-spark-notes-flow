@@ -179,7 +179,8 @@ async function getVideoThumbnail(url: string): Promise<{thumbnail: string | null
 async function scrapeMetadata(url: string) {
   // First try oEmbed for video platforms
   const videoData = await getVideoThumbnail(url);
-  console.log(videoData);
+  console.log('Fetched HTML length:', html.length);
+  console.log('First 500 chars:', html.slice(0, 500));
   
   try {
     const response = await fetch(url, {
