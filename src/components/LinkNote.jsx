@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, GripVertical, ExternalLink, Sparkles, MapPin, ChefHat, Shirt, Wrench, RefreshCw } from 'lucide-react';
+import { X, GripVertical, ExternalLink, Sparkles, MapPin, ChefHat, Shirt, Wrench, RefreshCw, Instagram, Youtube, Music, Twitter, Facebook, Linkedin, Globe } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import '../styles/StickyNote.css';
@@ -24,6 +24,23 @@ const LinkNote = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [enrichedContent, setEnrichedContent] = useState(null);
   const [isEnriching, setIsEnriching] = useState(false);
+
+  const getSourceIcon = (url) => {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+      
+      if (hostname.includes('instagram.com')) return { name: 'Instagram', Icon: Instagram };
+      if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) return { name: 'YouTube', Icon: Youtube };
+      if (hostname.includes('tiktok.com')) return { name: 'TikTok', Icon: Music };
+      if (hostname.includes('twitter.com') || hostname.includes('x.com')) return { name: 'X', Icon: Twitter };
+      if (hostname.includes('facebook.com')) return { name: 'Facebook', Icon: Facebook };
+      if (hostname.includes('linkedin.com')) return { name: 'LinkedIn', Icon: Linkedin };
+      
+      return { name: linkData.metadata.siteName || 'Source', Icon: Globe };
+    } catch (e) {
+      return { name: 'Source', Icon: Globe };
+    }
+  };
 
   const getTypeIcon = (type) => {
     switch (type) {
@@ -176,6 +193,7 @@ const LinkNote = ({
   };
 
   const displayedEnrichedContent = enrichedContent || linkData.enrichedContent;
+  const { name: sourceName, Icon: SourceIcon } = getSourceIcon(linkData.url);
 
   return (
     <div
@@ -210,7 +228,7 @@ const LinkNote = ({
           <a 
             href={linkData.url} 
             target="_blank" 
-            rel="noopener noreferrer"
+            rel="noopener noreferrer nofollow"
             className="link-note-title"
           >
             {linkData.metadata.title}
@@ -257,9 +275,13 @@ const LinkNote = ({
           )}
         </button>
 
-        <div className="link-note-footer">
-          <span className="link-note-source">{linkData.metadata.siteName}</span>
-        </div>
+        <button
+          onClick={() => window.open(linkData.url, '_blank', 'noopener,noreferrer')}
+          className="link-note-source-button"
+        >
+          <SourceIcon className="w-4 h-4" />
+          <span>{sourceName}</span>
+        </button>
       </div>
 
       <div
