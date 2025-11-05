@@ -32,10 +32,7 @@ const LinkNote = ({
       if (hostname.includes('instagram.com')) return { name: 'Instagram', Icon: Instagram };
       if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) return { name: 'YouTube', Icon: Youtube };
       if (hostname.includes('tiktok.com')) return { name: 'TikTok', Icon: Music };
-      if (hostname.includes('twitter.com') || hostname.includes('x.com')) return { name: 'X', Icon: Twitter };
-      if (hostname.includes('facebook.com')) return { name: 'Facebook', Icon: Facebook };
-      if (hostname.includes('linkedin.com')) return { name: 'LinkedIn', Icon: Linkedin };
-      
+      if (hostname.includes('facebook.com')) return { name: 'Facebook', Icon: Facebook };      
       return { name: linkData.metadata.siteName || 'Source', Icon: Globe };
     } catch (e) {
       return { name: 'Source', Icon: Globe };

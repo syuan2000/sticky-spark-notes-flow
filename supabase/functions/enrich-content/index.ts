@@ -1,5 +1,5 @@
+// supabase/functions/enrich-content/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,32 +13,53 @@ serve(async (req) => {
 
   try {
     const { type, title, url } = await req.json();
-    console.log('Enriching content:', { type, title, url });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Build prompt based on type
-    let prompt = '';
-    switch (type) {
-      case 'place':
-        prompt = `Find detailed information about "${title}". Include: address, rating, hours, whether it has outlets/parking, and menu/key features. Be concise but thorough.`;
-        break;
-      case 'recipe':
-        prompt = `Extract or find the ingredients list and cooking steps for "${title}". Format clearly with ingredients first, then numbered steps.`;
-        break;
-      case 'outfit':
-      case 'product':
-        prompt = `Find similar products or alternatives to "${title}". List 3-5 options with brief descriptions and approximate price ranges.`;
-        break;
-      case 'tool':
-        prompt = `Provide a brief review summary and key pros/cons of "${title}". Include typical use cases and pricing if available.`;
-        break;
-      default:
-        prompt = `Provide more detailed information about "${title}". Be specific and helpful.`;
-    }
+    // Category-specific prompts
+    const prompts = {
+      place: `Extract structured information about this place: "${title}" (${url})
+
+Return ONLY this format (use "Not available" if info not found):
+**Address:** [full address]
+**Hours:** [operating hours]
+**Features:** [key highlights in 2-3 bullet points]`,
+
+      recipe: `Extract structured information about this recipe: "${title}" (${url})
+
+Return ONLY this format:
+**Prep Time:** [time]
+**Cook Time:** [time]
+**Servings:** [number]
+**Key Ingredients:** [main ingredients]
+**Steps:** [brief overview]`,
+
+      outfit: `Extract structured information about this outfit/product: "${title}" (${url})
+
+Return ONLY this format:
+**Price:** [price or range]
+**Where to Buy:** [store/link]
+**Sizes:** [available sizes]
+**Style Notes:** [2-3 key points]`,
+
+      tool: `Extract structured information about this tool/software: "${title}" (${url})
+
+Return ONLY this format:
+**Pricing:** [free/paid/subscription]
+**Platform:** [web/iOS/Android/desktop]
+**Key Features:** [3-4 main features]
+**Best For:** [target audience]
+**Alternatives:** [similar tools]`,
+
+      other: `Extract key structured information about: "${title}" (${url})
+
+Provide the most relevant details in a clean, organized format.`
+    };
+
+    const prompt = prompts[type] || prompts.other;
 
     const llmResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -51,55 +72,39 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that provides concise, structured information. Format your response clearly with headings and bullet points where appropriate.'
+            content: 'You are a concise information extractor. Provide structured, factual data only. No fluff or introductions.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.4,
-        max_tokens: 800
+        temperature: 0.2,
+        max_tokens: 500
       }),
     });
 
     if (!llmResponse.ok) {
-      const errorText = await llmResponse.text();
-      console.error('LLM error:', llmResponse.status, errorText);
-      
-      if (llmResponse.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a moment.');
-      }
-      if (llmResponse.status === 402) {
-        throw new Error('AI credits depleted. Please add credits to continue.');
-      }
-      throw new Error(`AI enrichment failed: ${errorText}`);
+      throw new Error('Failed to enrich content');
     }
 
     const llmData = await llmResponse.json();
-    const enrichedContent = llmData.choices?.[0]?.message?.content;
-
-    if (!enrichedContent) {
-      throw new Error('No response from AI');
-    }
+    const enrichedContent = llmData.choices?.[0]?.message?.content || 'No additional information available';
 
     return new Response(JSON.stringify({
       success: true,
-      data: {
-        enrichedContent,
-        enrichedAt: new Date().toISOString()
-      }
+      data: { enrichedContent }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in enrich-content function:', error);
+    console.error('Error:', error);
     return new Response(JSON.stringify({ 
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error.message
     }), {
-      status: error instanceof Error && error.message.includes('Rate limit') ? 429 : 500,
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
