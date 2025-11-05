@@ -2,254 +2,202 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ──────────────────────────────────────────────────────────────
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { url } = await req.json();
-    console.log('Parsing link:', url);
+    if (!url) throw new Error("URL is required");
+    console.log("Parsing link:", url);
 
-    if (!url) {
-      throw new Error('URL is required');
-    }
-
-    // Step 1: Scrape metadata
     const metadata = await scrapeMetadata(url);
-    console.log('Scraped metadata:', metadata);
+    console.log("Scraped metadata:", metadata);
 
-    // Step 2: Call LLM for classification
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    // Skip LLM for Instagram (oEmbed already gives nice summary)
+    if (metadata.siteName === "Instagram") {
+      return jsonResponse({
+        success: true,
+        data: {
+          url,
+          metadata,
+          classification: {
+            type: "other",
+            summary: "Instagram post — open link to view full caption and location.",
+            tags: ["instagram", "social"],
+          },
+          parsedAt: new Date().toISOString(),
+        },
+      });
     }
 
-    const llmResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
+    // ── LLM classification ───────────────────────────
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const llmResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: "google/gemini-2.5-flash",
         messages: [
           {
-            role: 'system',
-            content: 'You are a media classifier. Output ONLY valid JSON. No markdown, no code blocks, just the JSON object.'
+            role: "system",
+            content:
+              "You are a media classifier. Output ONLY valid JSON. No markdown, no code blocks, just JSON.",
           },
           {
-            role: 'user',
-            content: `Classify this link into one of these categories:
-
-**place** = restaurants, cafes, stores, venues, tourist spots, buildings, locations
-**recipe** = cooking instructions, food tutorials, meal prep guides
-**outfit** = fashion, clothing items, style guides, shopping links for wearables
-**tool** = software, apps, productivity tools, services, platforms, utilities
-**other** = everything else (articles, videos, social posts, blogs, news)
-
+            role: "user",
+            content: `Classify this link:
 Title: "${metadata.title}"
 Description: "${metadata.description}"
-URL: ${url}
-
-If title/description are generic (like "Instagram" or "YouTube"), infer from the URL domain:
-- instagram.com/tiktok.com reels/posts → usually "other"
-- Maps/reviews → "place"
-- Shopping sites → "outfit" or "tool"
-
-Return JSON:
-{
-  "type": "place" | "recipe" | "outfit" | "tool" | "other",
-  "summary": "<clear 1-sentence description, max 50 words>",
-  "tags": ["tag1", "tag2", "tag3"]
-}`
-          }
+URL: ${url}`,
+          },
         ],
         temperature: 0.2,
-        max_tokens: 300
+        max_tokens: 300,
       }),
     });
 
-    if (!llmResponse.ok) {
-      const errorText = await llmResponse.text();
-      console.error('LLM error:', llmResponse.status, errorText);
-      throw new Error(`AI classification failed: ${errorText}`);
-    }
-
-    const llmData = await llmResponse.json();
-    const content = llmData.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('No response from AI');
-    }
-
-    // Parse the JSON response, handling markdown code blocks if present
+    const data = await llmResponse.json();
+    const raw = data.choices?.[0]?.message?.content ?? "";
     let classification;
     try {
-      // Remove markdown code blocks if present
-      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      classification = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error('Failed to parse LLM response:', content);
-      // Fallback classification
+      classification = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    } catch {
       classification = {
-        type: 'other',
-        summary: metadata.description?.slice(0, 150) || 'No description available',
-        tags: ['link']
+        type: "other",
+        summary: metadata.description?.slice(0, 100) ?? "No description",
+        tags: ["link"],
       };
     }
 
-    console.log('Classification:', classification);
+    console.log("Classification:", classification);
 
-    // Step 3: Return combined result
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
-      data: {
-        url,
-        metadata,
-        classification,
-        parsedAt: new Date().toISOString()
-      }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      data: { url, metadata, classification, parsedAt: new Date().toISOString() },
     });
-
-  } catch (error) {
-    console.error('Error in parse-link function:', error);
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (e) {
+    console.error("Error in parse-link:", e);
+    return jsonResponse(
+      { success: false, error: e instanceof Error ? e.message : String(e) },
+      500,
+    );
   }
 });
 
-async function getVideoThumbnail(url: string): Promise<{thumbnail: string | null, title: string | null}> {
-  try {
-    const urlObj = new URL(url);
-    const hostname = urlObj.hostname.toLowerCase();
-
-    // YouTube oEmbed
-    if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-      try {
-        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-        const response = await fetch(oembedUrl);
-        if (response.ok) {
-          const data = await response.json();
-          return { 
-            thumbnail: data.thumbnail_url,
-            title: data.title
-          };
-        }
-      } catch (e) {
-        console.error('YouTube oEmbed failed:', e);
-      }
-    }
-
-    // TikTok oEmbed
-    if (hostname.includes('tiktok.com')) {
-      try {
-        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
-        const response = await fetch(oembedUrl);
-        if (response.ok) {
-          const data = await response.json();
-          return {
-            thumbnail: data.thumbnail_url,
-            title: data.title
-          };
-        }
-      } catch (e) {
-        console.error('TikTok oEmbed failed:', e);
-      }
-    }
-
-    return { thumbnail: null, title: null };
-  } catch (error) {
-    console.error('Error fetching video thumbnail:', error);
-    return { thumbnail: null, title: null };
-  }
+function jsonResponse(obj: unknown, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
-async function scrapeMetadata(url: string) {
-  // First try oEmbed for video platforms
-  const videoData = await getVideoThumbnail(url);
-  console.log('Fetched HTML length:', html.length);
-  console.log('First 500 chars:', html.slice(0, 500));
-  
+// ──────────────────────────────────────────────────────────────
+// Video oEmbed helpers (YouTube / TikTok)
+async function getVideoThumbnail(url: string) {
+  const host = new URL(url).hostname.toLowerCase();
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
-      signal: AbortSignal.timeout(5000) // 5 second timeout
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status}`);
-    }
-
-    const html = await response.text();
-    
-    const getMetaContent = (name: string): string | null => {
-      const patterns = [
-        new RegExp(`<meta[^>]*property=["']${name}["'][^>]*content=["']([^"']*)["']`, 'i'),
-        new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']${name}["']`, 'i'),
-        new RegExp(`<meta[^>]*name=["']${name}["'][^>]*content=["']([^"']*)["']`, 'i'),
-        new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*name=["']${name}["']`, 'i'),
-      ];
-      
-      for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) return match[1];
+    if (host.includes("youtube.com") || host.includes("youtu.be")) {
+      const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+      if (r.ok) {
+        const j = await r.json();
+        return { title: j.title, thumbnail: j.thumbnail_url };
       }
-      return null;
+    }
+    if (host.includes("tiktok.com")) {
+      const r = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+      if (r.ok) {
+        const j = await r.json();
+        return { title: j.title, thumbnail: j.thumbnail_url };
+      }
+    }
+  } catch (_) {}
+  return { title: null, thumbnail: null };
+}
+
+// ──────────────────────────────────────────────────────────────
+// Metadata scraper with Instagram oEmbed integration
+async function scrapeMetadata(url: string) {
+  const host = new URL(url).hostname.toLowerCase();
+
+  // ✅ Instagram oEmbed first
+  if (host.includes("instagram.com")) {
+    const APP_ID = Deno.env.get("INSTAGRAM_APP_ID");
+    const CLIENT_TOKEN = Deno.env.get("INSTAGRAM_CLIENT_TOKEN");
+    try {
+      if (APP_ID && CLIENT_TOKEN) {
+        const oembed = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(
+          url,
+        )}&access_token=${APP_ID}|${CLIENT_TOKEN}`;
+        const res = await fetch(oembed);
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            title: data.title || "Instagram post",
+            description: data.author_name ? `By ${data.author_name}` : "Instagram content",
+            image: data.thumbnail_url,
+            siteName: "Instagram",
+          };
+        }
+      }
+    } catch (err) {
+      console.error("Instagram oEmbed failed:", err);
+    }
+    // Fallback if oEmbed fails
+    return {
+      title: "Instagram post",
+      description: "Open link to view caption",
+      image: null,
+      siteName: "Instagram",
+    };
+  }
+
+  // ✅ Else scrape normally
+  const videoData = await getVideoThumbnail(url);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119 Safari/537.36",
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    const html = await res.text();
+
+    const getMeta = (name: string): string | null => {
+      const pattern = new RegExp(`<meta[^>]*(?:property|name)=["']${name}["'][^>]*content=["']([^"']*)["']`, "i");
+      const m = html.match(pattern);
+      return m ? m[1] : null;
     };
 
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const scrapedTitle = getMetaContent('og:title') || 
-                  getMetaContent('twitter:title') || 
-                  (titleMatch ? titleMatch[1] : null);
+    const title =
+      videoData.title ||
+      getMeta("og:title") ||
+      getMeta("twitter:title") ||
+      html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] ||
+      "Untitled";
+    const description =
+      getMeta("og:description") || getMeta("twitter:description") || getMeta("description") || "";
+    const image = videoData.thumbnail || getMeta("og:image") || getMeta("twitter:image");
+    const siteName = getMeta("og:site_name") || host;
 
-    const title = videoData.title || scrapedTitle || 'Untitled';
-
-    const description = getMetaContent('og:description') || 
-                       getMetaContent('twitter:description') || 
-                       getMetaContent('description') ||
-                       '';
-
-    const scrapedImage = getMetaContent('og:image') || 
-                  getMetaContent('twitter:image') ||
-                  getMetaContent('og:image:url') ||
-                  getMetaContent('twitter:image:src');
-
-    const image = videoData.thumbnail || scrapedImage;
-
-    const siteName = getMetaContent('og:site_name') || 
-                    new URL(url).hostname;
-
+    return { title: title.trim(), description: description.trim(), image, siteName };
+  } catch (e) {
+    console.error("HTML scrape failed:", e);
     return {
-      title: title.trim(),
-      description: description.trim(),
-      image,
-      siteName,
-    };
-  } catch (error) {
-    console.error('Error scraping metadata, using fallback:', error);
-    
-    // Fallback to oEmbed data or basic info
-    return {
-      title: videoData.title || 'Link',
-      description: '',
+      title: videoData.title || "Link",
+      description: "",
       image: videoData.thumbnail,
-      siteName: new URL(url).hostname,
+      siteName: host,
     };
   }
 }
