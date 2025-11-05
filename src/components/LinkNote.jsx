@@ -104,6 +104,17 @@ const LinkNote = ({
       setIsEnriching(false);
     }
   };
+  const getProxiedImage = (imageUrl) => {
+  if (!imageUrl) return null;
+  
+  // Check if it's an Instagram/Facebook CDN URL
+  if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('fbcdn.net')) {
+    // Use a CORS proxy or screenshot service
+    return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}`;
+  }
+  
+  return imageUrl;
+};
 
   const handleHorizontalResizeStart = (e) => {
     e.stopPropagation();
@@ -214,7 +225,7 @@ const LinkNote = ({
       <div className="link-note-content" style={{ height: size.height - 80, overflowY: 'auto' }}>
         {linkData.metadata.image && (
           <img 
-            src={linkData.metadata.image} 
+            src={getProxiedImage(linkData.metadata.image)} 
             alt={linkData.metadata.title}
             className="link-note-image"
           />
