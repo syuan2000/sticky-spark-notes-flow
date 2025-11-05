@@ -105,16 +105,16 @@ const LinkNote = ({
     }
   };
   const getProxiedImage = (imageUrl) => {
-  if (!imageUrl) return null;
-  
-  // Check if it's an Instagram/Facebook CDN URL
-  if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('fbcdn.net')) {
-    // Use a CORS proxy or screenshot service
-    return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}`;
-  }
-  
-  return imageUrl;
-};
+    if (!imageUrl) return null;
+      const cleanUrl = imageUrl.replace(/&amp;/g, '&');
+    
+    // Check if it's an Instagram/Facebook CDN URL
+    if (cleanUrl.includes('cdninstagram.com') || cleanUrl.includes('fbcdn.net')) {
+      return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
+    }
+    
+    return cleanUrl;
+  };
 
   const handleHorizontalResizeStart = (e) => {
     e.stopPropagation();
