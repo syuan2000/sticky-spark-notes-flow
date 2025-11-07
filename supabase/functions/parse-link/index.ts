@@ -77,6 +77,7 @@ async function scrapeMetadata(url: string): Promise<Metadata> {
   if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
     metadata = await getYouTubeOembed(url);
   } else if (hostname.includes("instagram.com")) {
+    console.log("starting instagram");
     metadata = await getInstagramOembed(url);
   } else if (hostname.includes("tiktok.com")) {
     metadata = await getTikTokOembed(url);
