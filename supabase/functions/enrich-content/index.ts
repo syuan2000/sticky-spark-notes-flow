@@ -20,7 +20,7 @@ serve(async (req) => {
     }
 
     // Category-specific prompts
-    const prompts = {
+    const prompts: Record<string, string> = {
       place: `Extract structured information about this place: "${title}" (${url})
 
 Return ONLY this format (use "Not available" if info not found):
@@ -59,7 +59,7 @@ Return ONLY this format:
 Provide the most relevant details in a clean, organized format.`
     };
 
-    const prompt = prompts[type] || prompts.other;
+    const prompt = prompts[type as keyof typeof prompts] || prompts.other;
 
     const llmResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -102,7 +102,7 @@ Provide the most relevant details in a clean, organized format.`
     console.error('Error:', error);
     return new Response(JSON.stringify({ 
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : "Unknown error"
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

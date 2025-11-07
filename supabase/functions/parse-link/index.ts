@@ -45,12 +45,20 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error(e);
-    return jsonResponse({ success: false, error: e.message }, 500);
+    return jsonResponse({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
 
 // ─────────────── HELPERS ───────────────
-function jsonResponse(obj, status = 200) {
+interface Metadata {
+  title: string;
+  description: string;
+  image?: string;
+  thumbnail?: string;
+  siteName: string;
+}
+
+function jsonResponse(obj: any, status = 200) {
   return new Response(JSON.stringify(obj, null, 2), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -58,19 +66,79 @@ function jsonResponse(obj, status = 200) {
 }
 
 // oEmbed / fallback HTML meta
-async function scrapeMetadata(url) {
+async function scrapeMetadata(url: string): Promise<Metadata> {
   const hostname = new URL(url).hostname.toLowerCase();
-  if (hostname.includes("youtube.com") || hostname.includes("youtu.be"))
-    return await getYouTubeOembed(url);
-  if (hostname.includes("instagram.com"))
-    return await getInstagramOembed(url);
-  if (hostname.includes("tiktok.com"))
-    return await getTikTokOembed(url);
-  return { title: "Unknown", description: "", siteName: hostname };
+  
+  let metadata: Metadata;
+  
+  if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
+    metadata = await getYouTubeOembed(url);
+  } else if (hostname.includes("instagram.com")) {
+    metadata = await getInstagramOembed(url);
+  } else if (hostname.includes("tiktok.com")) {
+    metadata = await getTikTokOembed(url);
+  } else {
+    metadata = { title: "Unknown", description: "", siteName: hostname };
+  }
+  
+  // Fallback: if metadata is poor, try HTML scraping
+  if ((!metadata.title || metadata.title === "Instagram" || metadata.title === "TikTok") && !metadata.description) {
+    console.log("Primary method failed, trying HTML fallback scraping");
+    const htmlMetadata = await scrapeHtmlMetaTags(url);
+    if (htmlMetadata.title && htmlMetadata.title !== metadata.title) {
+      metadata = { ...metadata, ...htmlMetadata };
+    }
+  }
+  
+  return metadata;
+}
+
+// Fallback HTML scraper that extracts Open Graph and meta tags
+async function scrapeHtmlMetaTags(url: string): Promise<Partial<Metadata>> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const html = await response.text();
+    const metadata: Partial<Metadata> = {};
+    
+    // Extract Open Graph tags
+    const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["']/i);
+    const ogDescription = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["']/i);
+    const ogImage = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["']/i);
+    const ogSiteName = html.match(/<meta[^>]*property=["']og:site_name["'][^>]*content=["']([^"']*)["']/i);
+    
+    // Extract Twitter Card tags as fallback
+    const twitterTitle = html.match(/<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']*)["']/i);
+    const twitterDescription = html.match(/<meta[^>]*name=["']twitter:description["'][^>]*content=["']([^"']*)["']/i);
+    const twitterImage = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']*)["']/i);
+    
+    // Extract standard meta tags as last resort
+    const metaDescription = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i);
+    const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    
+    metadata.title = ogTitle?.[1] || twitterTitle?.[1] || titleTag?.[1] || "";
+    metadata.description = ogDescription?.[1] || twitterDescription?.[1] || metaDescription?.[1] || "";
+    metadata.image = ogImage?.[1] || twitterImage?.[1];
+    metadata.siteName = ogSiteName?.[1] || new URL(url).hostname;
+    
+    console.log("HTML scraping extracted:", metadata);
+    return metadata;
+  } catch (err) {
+    console.error("HTML scraping error:", err);
+    return {};
+  }
 }
 
 // ─────────────── Instagram helpers ───────────────
-async function getInstagramOembed(url) {
+async function getInstagramOembed(url: string): Promise<Metadata> {
   try {
     const res = await fetch(`https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}`);
     if (!res.ok) throw new Error("oEmbed fail");
@@ -86,7 +154,7 @@ async function getInstagramOembed(url) {
   }
 }
 
-async function getInstagramCaption(url) {
+async function getInstagramCaption(url: string): Promise<string | null> {
   try {
     const reelUrl = url.includes("?") ? url.split("?")[0] : url;
     const apiUrl = `${reelUrl}?__a=1&__d=dis`;
@@ -106,7 +174,7 @@ async function getInstagramCaption(url) {
 }
 
 // ─────────────── TikTok helpers ───────────────
-async function getTikTokOembed(url) {
+async function getTikTokOembed(url: string): Promise<Metadata> {
   try {
     const r = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
     if (!r.ok) throw new Error();
@@ -123,7 +191,7 @@ async function getTikTokOembed(url) {
 }
 
 // Use TikWM API for caption + direct video/audio URL
-async function getTikTokData(url) {
+async function getTikTokData(url: string): Promise<{ caption?: string; cover?: string; playUrl?: string }> {
   try {
     const r = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`);
     const d = await r.json();
@@ -139,7 +207,7 @@ async function getTikTokData(url) {
 }
 
 // ─────────────── YouTube helpers ───────────────
-async function getYouTubeOembed(url) {
+async function getYouTubeOembed(url: string): Promise<Metadata> {
   try {
     const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
     const d = await r.json();
@@ -155,7 +223,7 @@ async function getYouTubeOembed(url) {
 }
 
 // ─────────────── Audio → Transcript ───────────────
-async function transcribeAudio(audioUrl) {
+async function transcribeAudio(audioUrl: string | undefined): Promise<string | null> {
   if (!audioUrl || !OPENAI_KEY) return null;
   try {
     const audio = await fetch(audioUrl);
@@ -178,7 +246,7 @@ async function transcribeAudio(audioUrl) {
 }
 
 // ─────────────── LLM classification (vLLM/local/OpenAI) ───────────────
-async function classifyLink({ url, metadata, caption }) {
+async function classifyLink({ url, metadata, caption }: { url: string; metadata: Metadata; caption: string | null }): Promise<{ type: string; summary: string; tags: string[] }> {
   if (!OPENAI_KEY) return { type: "other", summary: caption || metadata.description, tags: [] };
   try {
     const body = {
