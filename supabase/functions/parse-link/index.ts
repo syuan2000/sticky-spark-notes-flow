@@ -40,7 +40,7 @@ serve(async (req) => {
     }
 
     // ── Step 3: classify with local / remote LLM ──
-    const classification = await classifyLink({ url, metadata, caption });
+    const classification = await classifyLink({ url, metadata, caption: caption ?? null });
 
     return jsonResponse({
       success: true,
