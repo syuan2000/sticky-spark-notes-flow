@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY"); // for Whisper + LLM (optional)
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY"); // for LLM classification
 const INSTAGRAM_APP_ID = Deno.env.get("INSTAGRAM_APP_ID");
 const INSTAGRAM_CLIENT_TOKEN = Deno.env.get("INSTAGRAM_CLIENT_TOKEN");
 const INSTAGRAM_ACCESS_TOKEN = Deno.env.get("INSTAGRAM_ACCESS_TOKEN");
@@ -268,33 +268,20 @@ async function getYouTubeOembed(url: string): Promise<Metadata> {
 
 // ─────────────── Audio → Transcript ───────────────
 async function transcribeAudio(audioUrl: string | undefined): Promise<string | null> {
-  if (!audioUrl || !OPENAI_KEY) return null;
-  try {
-    const audio = await fetch(audioUrl);
-    const blob = await audio.blob();
-    const fd = new FormData();
-    fd.append("file", new Blob([blob]), "audio.mp3");
-    fd.append("model", "whisper-1");
-
-    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI_KEY}` },
-      body: fd,
-    });
-    const j = await r.json();
-    return j.text || null;
-  } catch (err) {
-    console.error("Transcription error:", err);
-    return null;
-  }
+  // Transcription disabled - would require separate Whisper API integration
+  return null;
 }
 
-// ─────────────── LLM classification (vLLM/local/OpenAI) ───────────────
+// ─────────────── LLM classification (Lovable AI) ───────────────
 async function classifyLink({ url, metadata, caption }: { url: string; metadata: Metadata; caption: string | null }): Promise<{ type: string; summary: string; tags: string[] }> {
-  if (!OPENAI_KEY) return { type: "other", summary: caption || metadata.description, tags: [] };
+  if (!LOVABLE_API_KEY) {
+    console.log("No LOVABLE_API_KEY found, returning default classification");
+    return { type: "other", summary: caption || metadata.description, tags: [] };
+  }
+  
   try {
     const body = {
-      model: "gpt-4o-mini",
+      model: "google/gemini-2.5-flash",
       messages: [
         {
           role: "system",
@@ -306,18 +293,25 @@ async function classifyLink({ url, metadata, caption }: { url: string; metadata:
           content: `Title:${metadata.title}\nCaption:${caption}\nURL:${url}`,
         },
       ],
-      temperature: 0.2,
     };
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Lovable AI error:", res.status, errorText);
+      throw new Error(`AI API failed: ${res.status}`);
+    }
+
     const data = await res.json();
     const raw = data.choices?.[0]?.message?.content ?? "{}";
-    return JSON.parse(raw.replace(/```json|```/g, "").trim());
+    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    console.log("Classification successful:", parsed);
+    return parsed;
   } catch (err) {
     console.error("Classification error:", err);
     return { type: "other", summary: caption || metadata.description, tags: [] };
