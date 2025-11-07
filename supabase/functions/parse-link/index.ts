@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY"); // for Whisper + LLM (optional)
+const INSTAGRAM_APP_ID = Deno.env.get("INSTAGRAM_APP_ID");
+const INSTAGRAM_CLIENT_TOKEN = Deno.env.get("INSTAGRAM_CLIENT_TOKEN");
+const INSTAGRAM_ACCESS_TOKEN = Deno.env.get("INSTAGRAM_ACCESS_TOKEN");
 
 // ─────────────── SERVER ───────────────
 serve(async (req) => {
@@ -139,24 +142,50 @@ async function scrapeHtmlMetaTags(url: string): Promise<Partial<Metadata>> {
 
 // ─────────────── Instagram helpers ───────────────
 async function getInstagramOembed(url: string): Promise<Metadata> {
+  const graphVersion = "v17.0";
+  const normalizedUrl = normalizeInstagramUrl(url);
+  const accessToken =
+    INSTAGRAM_ACCESS_TOKEN || (INSTAGRAM_APP_ID && INSTAGRAM_CLIENT_TOKEN
+      ? `${INSTAGRAM_APP_ID}|${INSTAGRAM_CLIENT_TOKEN}`
+      : null);
+
   try {
-    const res = await fetch(`https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}`);
-    if (!res.ok) throw new Error("oEmbed fail");
+    if (!accessToken) throw new Error("Missing Instagram access token");
+    console.log("Instagram oEmbed request", { normalizedUrl, hasAccessToken: Boolean(accessToken) });
+
+    const params = new URLSearchParams({
+      url: normalizedUrl,
+      access_token: accessToken,
+      fields: "author_name,title,thumbnail_url,provider_name,provider_url",
+      omitscript: "true",
+    });
+
+    const endpoint = `https://graph.facebook.com/${graphVersion}/instagram_oembed?${params.toString()}`;
+    const res = await fetch(endpoint);
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.log("Instagram oEmbed response error", { status: res.status, body });
+      throw new Error(`Graph oEmbed failed (${res.status})`);
+    }
+
     const d = await res.json();
+    console.log("Instagram oEmbed response ok", { title: d.title, author: d.author_name, hasThumb: Boolean(d.thumbnail_url) });
     return {
       title: d.title || "Instagram Post",
       description: `By ${d.author_name}`,
       image: d.thumbnail_url,
       siteName: "Instagram",
     };
-  } catch {
+  } catch (err) {
+    console.log("Instagram oEmbed error", err);
     return { title: "Instagram", description: "", siteName: "Instagram" };
   }
 }
 
 async function getInstagramCaption(url: string): Promise<string | null> {
   try {
-    const reelUrl = url.includes("?") ? url.split("?")[0] : url;
+    const reelUrl = normalizeInstagramUrl(url);
     const apiUrl = `${reelUrl}?__a=1&__d=dis`;
     const res = await fetch(apiUrl, {
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
@@ -170,6 +199,19 @@ async function getInstagramCaption(url: string): Promise<string | null> {
   } catch (err) {
     console.error("IG caption error:", err);
     return null;
+  }
+}
+
+function normalizeInstagramUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.search = "";
+    parsed.hash = "";
+    // Normalize reel/post/story paths so trailing params don't break oEmbed lookups
+    if (!parsed.pathname.endsWith("/")) parsed.pathname += "/";
+    return parsed.toString();
+  } catch {
+    return url;
   }
 }
 
