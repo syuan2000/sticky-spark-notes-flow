@@ -73,6 +73,7 @@ async function scrapeMetadata(url: string): Promise<Metadata> {
   const hostname = new URL(url).hostname.toLowerCase();
   
   let metadata: Metadata;
+  console.log(hostname);
   
   if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
     metadata = await getYouTubeOembed(url);
