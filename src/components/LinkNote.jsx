@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, GripVertical, ExternalLink, Sparkles, MapPin, ChefHat, Shirt, Wrench, RefreshCw, Instagram, Youtube, Music, Twitter, Facebook, Linkedin, Globe } from 'lucide-react';
+import { X, GripVertical, ExternalLink, Sparkles, MapPin, ChefHat, Shirt, Wrench, RefreshCw, Instagram, Youtube, Music, Twitter, Facebook, Linkedin, Globe, Edit2, Check } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import '../styles/StickyNote.css';
@@ -22,8 +22,12 @@ const LinkNote = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [enrichedContent, setEnrichedContent] = useState(null);
+  const [enrichedContent, setEnrichedContent] = useState(linkData.enrichedContent || null);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [isEditingClassification, setIsEditingClassification] = useState(false);
+  const [editedType, setEditedType] = useState(linkData.classification.type);
+  const [editedSummary, setEditedSummary] = useState(linkData.classification.summary);
+  const [editedTags, setEditedTags] = useState(linkData.classification.tags.join(', '));
 
   const getSourceIcon = (url) => {
     try {
@@ -57,6 +61,27 @@ const LinkNote = ({
       case 'tool': return 'View reviews';
       default: return 'Reclassify';
     }
+  };
+
+  const handleSaveClassification = () => {
+    const updatedClassification = {
+      type: editedType,
+      summary: editedSummary,
+      tags: editedTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+    };
+
+    if (onUpdate) {
+      onUpdate(id, {
+        ...linkData,
+        classification: updatedClassification
+      });
+    }
+
+    setIsEditingClassification(false);
+    toast({
+      title: "Classification updated",
+      description: "Your changes have been saved",
+    });
   };
 
   const handleEnrich = async () => {
@@ -215,6 +240,7 @@ const LinkNote = ({
 
   const displayedEnrichedContent = enrichedContent || linkData.enrichedContent;
   const { name: sourceName, Icon: SourceIcon } = getSourceIcon(linkData.url);
+  const hasBeenEnriched = !!(enrichedContent || linkData.enrichedContent);
 
   return (
     <div
@@ -247,10 +273,39 @@ const LinkNote = ({
         )}
         
         <div className="link-note-header-text">
-          <div className="link-note-type">
-            {getTypeIcon(linkData.classification.type)}
-            <span>{linkData.classification.type}</span>
-          </div>
+          {isEditingClassification ? (
+            <div className="link-note-type-edit">
+              <select 
+                value={editedType} 
+                onChange={(e) => setEditedType(e.target.value)}
+                className="link-note-type-select"
+              >
+                <option value="place">place</option>
+                <option value="recipe">recipe</option>
+                <option value="outfit">outfit</option>
+                <option value="tool">tool</option>
+                <option value="other">other</option>
+              </select>
+              <button
+                onClick={handleSaveClassification}
+                className="link-note-edit-save-button"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="link-note-type">
+              {getTypeIcon(linkData.classification.type)}
+              <span>{linkData.classification.type}</span>
+              <button
+                onClick={() => setIsEditingClassification(true)}
+                className="link-note-edit-button"
+                title="Edit classification"
+              >
+                <Edit2 className="w-3 h-3" />
+              </button>
+            </div>
+          )}
           <button
             onClick={() => window.open(linkData.url, '_blank', 'noopener,noreferrer')}
             className="link-note-source-button"
@@ -260,15 +315,34 @@ const LinkNote = ({
           </button>
         </div>
 
-        <p className="link-note-summary">{linkData.classification.summary}</p>
-
-        <div className="link-note-tags">
-          {linkData.classification.tags.map((tag, idx) => (
-            <span key={idx} className="link-note-tag">
-              {tag}
-            </span>
-          ))}
-        </div>
+        {isEditingClassification ? (
+          <div className="link-note-edit-section">
+            <textarea 
+              value={editedSummary}
+              onChange={(e) => setEditedSummary(e.target.value)}
+              className="link-note-summary-edit"
+              placeholder="Summary"
+              rows={3}
+            />
+            <input
+              value={editedTags}
+              onChange={(e) => setEditedTags(e.target.value)}
+              className="link-note-tags-edit"
+              placeholder="Tags (comma-separated)"
+            />
+          </div>
+        ) : (
+          <>
+            <p className="link-note-summary">{linkData.classification.summary}</p>
+            <div className="link-note-tags">
+              {linkData.classification.tags.map((tag, idx) => (
+                <span key={idx} className="link-note-tag">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
 
         {displayedEnrichedContent && (
           <div className="link-note-enriched">
@@ -282,23 +356,25 @@ const LinkNote = ({
           </div>
         )}
 
-        <button
-          onClick={handleEnrich}
-          disabled={isEnriching}
-          className="link-note-action"
-        >
-          {isEnriching ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              Loading...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4" />
-              {getActionText(linkData.classification.type)}
-            </>
-          )}
-        </button>
+        {!hasBeenEnriched && (
+          <button
+            onClick={handleEnrich}
+            disabled={isEnriching}
+            className="link-note-action"
+          >
+            {isEnriching ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                {getActionText(linkData.classification.type)}
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       <div

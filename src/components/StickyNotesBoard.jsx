@@ -503,23 +503,28 @@ const StickyNotesBoard = () => {
   const undoAction = () => {
     if (undoStack.length === 0) return;
     
-    const actionToUndo = undoStack[undoStack.length - 1]; // Get the most recent action
+    // Get the most recent action and immediately remove it from stack to prevent race conditions
+    setUndoStack(prev => {
+      if (prev.length === 0) return prev;
+      
+      const actionToUndo = prev[prev.length - 1];
 
-    if (actionToUndo.type === 'note' && actionToUndo.action === 'delete') {
-      // Restore deleted note
-      setNotes(prev => [...prev, actionToUndo.data]);
-    } else if ((actionToUndo.type === 'board' || actionToUndo.type === 'folder') && actionToUndo.action === 'delete') {
-      // Restore deleted board/folder and its notes
-      setFolders(actionToUndo.data.folderState);
-      setNotes(prev => [...prev, ...actionToUndo.data.notes]);
-    }
+      if (actionToUndo.type === 'note' && actionToUndo.action === 'delete') {
+        // Restore deleted note
+        setNotes(currentNotes => [...currentNotes, actionToUndo.data]);
+      } else if ((actionToUndo.type === 'board' || actionToUndo.type === 'folder') && actionToUndo.action === 'delete') {
+        // Restore deleted board/folder and its notes
+        setFolders(actionToUndo.data.folderState);
+        setNotes(currentNotes => [...currentNotes, ...actionToUndo.data.notes]);
+      }
+      
+      toast({
+        title: "Restored successfully",
+        description: "Item has been restored",
+      });
 
-    // Remove the last item from undo stack
-    setUndoStack(prev => prev.slice(0, -1));
-    
-    toast({
-      title: "Restored successfully",
-      description: "Item has been restored",
+      // Return updated stack without the undone action
+      return prev.slice(0, -1);
     });
   };
 
