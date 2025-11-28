@@ -1,4 +1,3 @@
-
 .sticky-note {
   position: absolute;
   padding: 1rem;
@@ -105,10 +104,68 @@
   opacity: 1;
 }
 
-/* Color classes */
-.bg-yellow-200 { background-color: #fef08a; }
-.bg-pink-200 { background-color: #fbcfe8; }
-.bg-blue-200 { background-color: #bfdbfe; }
-.bg-green-200 { background-color: #bbf7d0; }
-.bg-purple-200 { background-color: #e9d5ff; }
-.bg-orange-200 { background-color: #fed7aa; }
+/* Legacy color classes (kept for backward compatibility) */
+.bg-yellow-200 {
+  background-color: #fef08a;
+}
+
+.bg-pink-200 {
+  background-color: #fbcfe8;
+}
+
+.bg-blue-200 {
+  background-color: #bfdbfe;
+}
+
+.bg-green-200 {
+  background-color: #bbf7d0;
+}
+
+.bg-purple-200 {
+  background-color: #e9d5ff;
+}
+
+.bg-orange-200 {
+  background-color: #fed7aa;
+}
+
+/* Notion-style colors - softer, more muted */
+.bg-notion-beige {
+  background-color: #F7F6F3;
+  border: 1px solid #E8E7E4;
+}
+
+.bg-notion-peach {
+  background-color: #FADEC9;
+  border: 1px solid #F0D4BE;
+}
+
+.bg-notion-yellow {
+  background-color: #FBF3DB;
+  border: 1px solid #F1E9D1;
+}
+
+.bg-notion-green {
+  background-color: #D4E4BC;
+  border: 1px solid #CADAB2;
+}
+
+.bg-notion-blue {
+  background-color: #D3E5EF;
+  border: 1px solid #C9DBE5;
+}
+
+.bg-notion-purple {
+  background-color: #E8DEEE;
+  border: 1px solid #DED4E4;
+}
+
+.bg-notion-pink {
+  background-color: #F5E0E9;
+  border: 1px solid #EBD6DF;
+}
+
+.bg-notion-red {
+  background-color: #FFE2DD;
+  border: 1px solid #F5D8D3;
+}

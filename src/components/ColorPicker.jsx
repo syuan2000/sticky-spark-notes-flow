@@ -3,11 +3,14 @@ import { X, Circle } from 'lucide-react';
 import '../styles/ColorPicker.css';
 
 const defaultColors = [
-  { name: 'yellow', class: 'bg-yellow-200', hex: '#FEF08A' },
-  { name: 'pink', class: 'bg-pink-200', hex: '#FBCFE8' },
-  { name: 'blue', class: 'bg-blue-200', hex: '#BFDBFE' },
-  { name: 'green', class: 'bg-green-200', hex: '#BBF7D0' },
-  { name: 'purple', class: 'bg-purple-200', hex: '#E9D5FF' },
+  { name: 'beige', class: 'bg-notion-beige', hex: '#F7F6F3' },
+  { name: 'peach', class: 'bg-notion-peach', hex: '#FADEC9' },
+  { name: 'yellow', class: 'bg-notion-yellow', hex: '#FBF3DB' },
+  { name: 'green', class: 'bg-notion-green', hex: '#D4E4BC' },
+  { name: 'blue', class: 'bg-notion-blue', hex: '#D3E5EF' },
+  { name: 'purple', class: 'bg-notion-purple', hex: '#E8DEEE' },
+  { name: 'pink', class: 'bg-notion-pink', hex: '#F5E0E9' },
+  { name: 'red', class: 'bg-notion-red', hex: '#FFE2DD' },
 ];
 
 const MAX_SLOT = 6; // 5 fixed + 1 custom
@@ -50,7 +53,7 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
       } else if (customColor) {
         onColorSelect(customColor.class);
       } else {
-        onColorSelect('bg-yellow-200');
+        onColorSelect('bg-notion-beige');
       }
     }
   };
@@ -74,7 +77,7 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
       if (regularColors.length > 0) {
         onColorSelect(regularColors[0].class);
       } else {
-        onColorSelect('bg-yellow-200');
+        onColorSelect('bg-notion-beige');
       }
     }
     setCustomColor(null);
@@ -118,7 +121,6 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
               type="color"
               value={color.hex}
               onChange={(e) => handleColorEdit(idx, e.target.value)}
-              onBlur={() => setEditingColorIndex(null)}
               className="color-input-inline"
               autoFocus
             />
@@ -152,9 +154,8 @@ const ColorPicker = ({ selectedColor, onColorSelect }) => {
         {editingColorIndex === 'custom' ? (
           <input
             type="color"
-            value={customColor?.hex || '#FFFF00'}
+            value={customColor?.hex || '#E8DEEE'} // Default to Notion purple
             onChange={e => handleCustomEdit(e.target.value)}
-            onBlur={() => setEditingColorIndex(null)}
             className="color-input-inline"
             autoFocus
           />

@@ -12,31 +12,31 @@ import '../styles/StickyNotesBoard.css';
 
 const StickyNotesBoard = () => {
   const [notes, setNotes] = useState([]);
-  const [selectedColor, setSelectedColor] = useState('bg-yellow-200');
+  const [selectedColor, setSelectedColor] = useState('bg-notion-beige');
   const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
   const [isParsingLink, setIsParsingLink] = useState(false);
   const { toast } = useToast();
-  
+
   // New structure: folders contain boards, boards contain notes
   const [folders, setFolders] = useState([
-    { 
-      id: 'all-boards', 
-      name: 'All Boards', 
+    {
+      id: 'all-boards',
+      name: 'All Boards',
       type: 'folder',
-      isExpanded: true, 
+      isExpanded: true,
       children: [
         { id: 'quick-notes', name: 'Quick Notes', type: 'board', children: [] }
-      ] 
+      ]
     },
   ]);
-  
+
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [selectedBoard, setSelectedBoard] = useState('quick-notes');
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [draggedNote, setDraggedNote] = useState(null);
   const [dragOverBoard, setDragOverBoard] = useState(null);
-  
+
   // Undo functionality
   const [undoStack, setUndoStack] = useState([]);
 
@@ -64,7 +64,7 @@ const StickyNotesBoard = () => {
 
   const createNote = () => {
     if (!selectedBoard) return;
-    
+
     const currentSidebarWidth = sidebarCollapsed ? 48 : sidebarWidth;
     const newNote = {
       id: Date.now().toString(),
@@ -116,7 +116,7 @@ const StickyNotesBoard = () => {
       };
 
       setNotes([...notes, newNote]);
-      
+
       toast({
         title: "Link parsed successfully",
         description: `Created ${data.data.classification.type} note`,
@@ -149,23 +149,46 @@ const StickyNotesBoard = () => {
   const deleteNote = (id) => {
     const noteToDelete = notes.find(note => note.id === id);
     if (noteToDelete) {
+      // Capture the note data at deletion time for this specific undo
+      const noteData = { ...noteToDelete };
+
       // Add to undo stack
       setUndoStack(prev => [...prev, {
         type: 'note',
         action: 'delete',
-        data: noteToDelete,
+        data: noteData,
         timestamp: Date.now()
       }]);
-      
+
       setNotes(notes.filter(note => note.id !== id));
-      
-      // Show undo toast
+
+      // Show undo toast with a specific handler for THIS note
       toast({
         title: "Note deleted",
         description: "Click undo to restore the note",
+        duration: 10000, // 10 seconds to give time to click undo
         action: (
           <button
-            onClick={undoAction}
+            onClick={() => {
+              // Undo THIS specific note, not whatever is on top of the stack
+              console.log('Undoing specific note:', noteData);
+
+              // Remove this action from the undo stack
+              setUndoStack(prev => prev.filter(action =>
+                !(action.type === 'note' && action.data.id === noteData.id)
+              ));
+
+              // Restore this specific note
+              setNotes(currentNotes => {
+                const filtered = currentNotes.filter(n => n.id !== noteData.id);
+                return [...filtered, noteData];
+              });
+
+              toast({
+                title: "Restored successfully",
+                description: "Note has been restored",
+              });
+            }}
             className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
           >
             <Undo2 className="h-4 w-4 mr-1" />
@@ -186,7 +209,7 @@ const StickyNotesBoard = () => {
   };
 
   const resizeNote = (id, size) => {
-    setNotes(notes.map(note => 
+    setNotes(notes.map(note =>
       note.id === id ? { ...note, size } : note
     ));
   };
@@ -205,7 +228,7 @@ const StickyNotesBoard = () => {
     };
 
     const targetItem = findItemById(folders, targetId);
-    
+
     // Only allow dropping on boards, not folders
     if (!targetItem || targetItem.type !== 'board') {
       setDraggedNote(null);
@@ -213,9 +236,9 @@ const StickyNotesBoard = () => {
       return;
     }
 
-    setNotes(notes.map(note => 
-      note.id === noteId ? 
-      { ...note, boardId: targetId } : note
+    setNotes(notes.map(note =>
+      note.id === noteId ?
+        { ...note, boardId: targetId } : note
     ));
     setDraggedNote(null);
     setDragOverBoard(null);
@@ -332,7 +355,7 @@ const StickyNotesBoard = () => {
       // Add to All Boards folder by default
       setFolders(updateFoldersRecursively(folders));
     }
-    
+
     // Auto-select the new board
     setSelectedBoard(newBoard.id);
     setSelectedFolder(null);
@@ -376,12 +399,12 @@ const StickyNotesBoard = () => {
           children: item.children ? deleteItemRecursively(item.children) : undefined,
         }));
     };
-    
+
     setFolders(deleteItemRecursively(folders));
-    
+
     // Remove notes from deleted boards
     setNotes(notes.filter(note => note.boardId !== itemId));
-    
+
     // Reset selection if deleted item was selected
     if (selectedBoard === itemId) {
       setSelectedBoard('quick-notes');
@@ -394,19 +417,19 @@ const StickyNotesBoard = () => {
 
     // Show undo toast
     if (itemToDelete) {
-        toast({
-          title: `${itemToDelete.type === 'board' ? 'Board' : 'Folder'} deleted`,
-          description: `Click undo to restore "${itemToDelete.name}"`,
-          action: (
-            <button
-              onClick={undoAction}
-              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-            >
-              <Undo2 className="h-4 w-4 mr-1" />
-              Undo
-            </button>
-          ),
-        });
+      toast({
+        title: `${itemToDelete.type === 'board' ? 'Board' : 'Folder'} deleted`,
+        description: `Click undo to restore "${itemToDelete.name}"`,
+        action: (
+          <button
+            onClick={undoAction}
+            className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          >
+            <Undo2 className="h-4 w-4 mr-1" />
+            Undo
+          </button>
+        ),
+      });
     }
   };
 
@@ -457,14 +480,14 @@ const StickyNotesBoard = () => {
     };
 
     const selectedItem = findItemById(folders, itemId);
-    
+
     if (selectedItem?.type === 'board') {
       setSelectedBoard(itemId);
       setSelectedFolder(null);
     } else if (selectedItem?.type === 'folder') {
       setSelectedFolder(itemId);
       setSelectedBoard(null);
-      
+
       // If folder has boards, auto-select the first one
       if (selectedItem.children && selectedItem.children.length > 0) {
         const firstBoard = selectedItem.children.find(child => child.type === 'board');
@@ -476,7 +499,7 @@ const StickyNotesBoard = () => {
     }
   };
 
-  const filteredNotes = selectedBoard 
+  const filteredNotes = selectedBoard
     ? notes.filter(note => note.boardId === selectedBoard)
     : [];
 
@@ -500,31 +523,38 @@ const StickyNotesBoard = () => {
     return 'Folder';
   };
 
+
   const undoAction = () => {
     if (undoStack.length === 0) return;
-    
-    // Get the most recent action and immediately remove it from stack to prevent race conditions
-    setUndoStack(prev => {
-      if (prev.length === 0) return prev;
-      
-      const actionToUndo = prev[prev.length - 1];
 
-      if (actionToUndo.type === 'note' && actionToUndo.action === 'delete') {
-        // Restore deleted note
-        setNotes(currentNotes => [...currentNotes, actionToUndo.data]);
-      } else if ((actionToUndo.type === 'board' || actionToUndo.type === 'folder') && actionToUndo.action === 'delete') {
-        // Restore deleted board/folder and its notes
-        setFolders(actionToUndo.data.folderState);
-        setNotes(currentNotes => [...currentNotes, ...actionToUndo.data.notes]);
-      }
-      
-      toast({
-        title: "Restored successfully",
-        description: "Item has been restored",
+    // Get the action to undo BEFORE modifying the stack
+    const actionToUndo = undoStack[undoStack.length - 1];
+
+    console.log('Undoing action:', actionToUndo);
+
+    // Remove from stack
+    setUndoStack(prev => prev.slice(0, -1));
+
+    // Perform the undo operation
+    if (actionToUndo.type === 'note' && actionToUndo.action === 'delete') {
+      // Restore deleted note - create a new object reference to force React re-render
+      // This is crucial because React might not detect the change if we use the same object
+      const restoredNote = { ...actionToUndo.data };
+      console.log('Restoring note:', restoredNote);
+      setNotes(currentNotes => {
+        // Make sure we're not duplicating - remove any existing note with same ID first
+        const filtered = currentNotes.filter(n => n.id !== restoredNote.id);
+        return [...filtered, restoredNote];
       });
+    } else if ((actionToUndo.type === 'board' || actionToUndo.type === 'folder') && actionToUndo.action === 'delete') {
+      // Restore deleted board/folder and its notes
+      setFolders(actionToUndo.data.folderState);
+      setNotes(currentNotes => [...currentNotes, ...actionToUndo.data.notes]);
+    }
 
-      // Return updated stack without the undone action
-      return prev.slice(0, -1);
+    toast({
+      title: "Restored successfully",
+      description: "Item has been restored",
     });
   };
 
@@ -556,26 +586,26 @@ const StickyNotesBoard = () => {
         />
       </div>
 
-      <div 
+      <div
         className="main-content"
         style={{ marginLeft: currentSidebarWidth }}
       >
-        <div 
-          className="header" 
+        <div
+          className="header"
           style={{ left: currentSidebarWidth }}
         >
           <div className="header-content">
             <h1 className="app-title">
-              ✨ Sticky Spark - {getSelectedItemName()}
+              {getSelectedItemName()}
             </h1>
-            
+
             {!isEmptyFolder && (
               <div className="header-controls">
-                <ColorPicker 
+                <ColorPicker
                   selectedColor={selectedColor}
                   onColorSelect={setSelectedColor}
                 />
-                
+
                 <button
                   onClick={() => setShowNewNoteDialog(true)}
                   className="new-note-button"
@@ -652,14 +682,14 @@ const StickyNotesBoard = () => {
 
         <div className="grid-pattern" />
       </div>
-      
+
       <NewNoteDialog
         open={showNewNoteDialog}
         onClose={() => setShowNewNoteDialog(false)}
         onCreateNote={createNote}
         onCreateLink={createLinkNote}
       />
-      
+
       <Toaster />
     </div>
   );
